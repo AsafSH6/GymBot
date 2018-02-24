@@ -8,9 +8,8 @@ import logging
 import threading
 from datetime import datetime, timedelta
 
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler, ConversationHandler
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
 from models import User, Group, Day
 from utils import get_db_session, upper_first_letter, WEIGHT_LIFTER_EMOJI, DAYS_NAME, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
@@ -204,7 +203,7 @@ class GymBot(object):
             bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,
                                     callback_query_id=update.callback_query.id)
         else:
-            self.logger.info('%s  %s', user.first_name, 'answered no')
+            self.logger.info('%s %s', user.first_name, 'answered no')
             bot.send_message(chat_id=query.message.chat_id,
                              text='אפס מאופס {user}'.format(user=user.first_name))
             bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,

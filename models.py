@@ -63,7 +63,7 @@ class Group(Base):
 
 
 # engine = create_engine('sqlite:///sqlalchemy_example.db')
-engine = create_engine('')
+engine = create_engine('postgres://bmkeltax:mj9riixCKwtgLVg30HMk7x_KX8lTgZXS@horton.elephantsql.com:5432/bmkeltax')
 
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.

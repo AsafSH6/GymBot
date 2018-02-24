@@ -20,7 +20,7 @@ def upper_first_letter(name):
 
 def get_db_session():
     # engine = create_engine('sqlite:///sqlalchemy_example.db')
-    engine = create_engine('')
+    engine = create_engine('postgres://bmkeltax:mj9riixCKwtgLVg30HMk7x_KX8lTgZXS@horton.elephantsql.com:5432/bmkeltax')
     Base.metadata.bind = engine
     DBSession = sessionmaker(bind=engine)
     return DBSession()
