@@ -17,8 +17,9 @@ Reminders:
     2. Ask who went to the gym.
 
 ** add username to User in order to @tag.
-** upload to github.
+V** upload to github.
 ** host the bot in heroku.
 ** add the commands to the fatherbot.
 ** write logs.
 ** refactor.
+** add repr methods to models.

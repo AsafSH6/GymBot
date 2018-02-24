@@ -1,3 +1,5 @@
+# encoding: utf-8
+from __future__ import unicode_literals
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, create_engine
@@ -23,6 +25,12 @@ class Day(Base):
     def __repr__(self):
         return '{name}'.format(name=self.name)
 
+    def __unicode__(self):
+        return repr(self)
+
+    def __str__(self):
+        return repr(self)
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -30,14 +38,28 @@ class User(Base):
     first_name = Column(String(255), nullable=True)
 
     def __repr__(self):
-         return "<User(id='%s', first name='%s')>" % (
-                    self.id, self.first_name)
+        return "<User(id='%s', first name='%s')>" % (self.id, self.first_name)
+
+    def __unicode__(self):
+        return repr(self)
+
+    def __str__(self):
+        return repr(self)
 
 
 class Group(Base):
     __tablename__ = 'group'
     id = Column(Integer, primary_key=True)
     users = relationship('User', secondary=user_and_groups_association_table, backref='group')
+
+    def __repr__(self):
+        return "<Group(id='%s')>" % self.id
+
+    def __unicode__(self):
+        return repr(self)
+
+    def __str__(self):
+        return repr(self)
 
 
 # engine = create_engine('sqlite:///sqlalchemy_example.db')

@@ -1,6 +1,8 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
+import os
+import sys
 import json
 import logging
 import threading
@@ -14,22 +16,26 @@ from models import User, Group, Day
 from utils import get_db_session, upper_first_letter, WEIGHT_LIFTER_EMOJI, DAYS_NAME, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 
-TOKEN = ''
-
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+logging.basicConfig(filename='logs/gymbot.log',
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 
 class GymBot(object):
-    def __init__(self, updater, dispatcher):
+    REMINDER_TIME = None
+    CHECK_WHETHER_DONE_TIME = None
+
+    def __init__(self, updater, dispatcher, logger):
         self.updater = updater
         self.dispatcher = dispatcher
         self.session = get_db_session()
         self.users = self.session.query(User)
         self.groups = self.session.query(Group)
         self.days = self.session.query(Day)
+        self.logger = logger
 
     def _generate_inline_keyboard_for_registration(self, user):
+        self.logger.info('generation inline keyboard for registration for user %s', user)
         already_registered_days = user.days
 
         keyboard = []
@@ -43,38 +49,45 @@ class GymBot(object):
         return InlineKeyboardMarkup(keyboard)
 
     def register_command(self, bot, update):
-        print 'register'
+        self.logger.info('register')
         user_id = update.effective_user.id
         group_id = update.message.chat_id
 
         user = self.users.get(user_id)
+        self.logger.info('user to register %s', user)
         group = self.groups.get(group_id)
+        self.logger.info('the group is %s', group)
+
+        if not group:
+            self.logger.info('the group does not exist in DB')
+            group = Group(id=group_id)
+            self.session.add(group)
 
         if user is None:  # new user.
+            self.logger.info('user does not exist in the DB')
             user = User(id=user_id, first_name=update.effective_user.first_name)
             self.session.add(user)
-
-            if not group:
-                group = Group(id=group_id)
-                self.session.add(group)
+            self.logger.info('created user in DB %s', user)
             group.users.append(user)
-            print 'created new user and added him to group'
+            self.logger.info('added the user to group')
 
         elif user not in group.users: # user exists but new in the current group.
-            print 'User was not in the group.'
+            self.logger.info('user was not in the group')
             group.users.append(user)
 
         keyboard = self._generate_inline_keyboard_for_registration(user)
         update.message.reply_text('באיזה ימים אתה מתאמן יא בוט?', reply_markup=keyboard)
 
     def select_day(self, bot, update):
-        print 'select day'
+        self.logger.info('select day')
         query = update.callback_query
 
         user = self.users.get(update.effective_user.id)
+        self.logger.info('user selected %s', user)
         _, user_id, selected_day_index = query.data.split()
 
         if user is None or user.id != int(user_id):
+            self.logger.info('user is not allow to choose for others')
             bot.answerCallbackQuery(text='אי אפשר לבחור לאחרים יא בוט',
                                     callback_query_id=update.callback_query.id,
                                     parse_mode=ParseMode.HTML)
@@ -82,9 +95,12 @@ class GymBot(object):
 
         selected_day = DAYS_NAME[int(selected_day_index)]
         selected_day = self.days.get(selected_day)
+        self.logger.info('selected day %s', selected_day)
         if user not in selected_day.users:
+            self.logger.info('new selected day- adding it to the user training days')
             selected_day.users.append(user)
         else:
+            self.logger.info('already selected day- removing it from the user training days')
             selected_day.users.remove(user)
         self.session.commit()
 
@@ -97,27 +113,33 @@ class GymBot(object):
                                 callback_query_id=update.callback_query.id)
 
     def my_days_command(self, bot, update):
-        print 'my days'
+        self.logger.info('my days command')
         user = self.users.get(update.effective_user.id)
+        self.logger.info('asking user %s', user)
         text = ' '.join(unicode(day) for day in user.days)
+        self.logger.info('user days %s', text)
         bot.send_message(chat_id=update.message.chat_id,
                          text=text)
 
     def _groups_daily_timer(self, callback):
-        print 'group daily timer'
+        self.logger.info('group daily reminder')
+        self.logger.info('callback method: %s', callback.func_name)
         for group in self.groups.all():
-            print 'checking group', group, 'with users', group.users
+            self.logger.info('checking group %s %s %s', group, 'with users', group.users)
             today_name = datetime.now().strftime('%A').lower()
             today = self.days.get(today_name)
+            self.logger.info('the day is %s', today)
 
             # TODO: use sql query.
             relevant_users = [user for user in today.users if user in group.users]
+            self.logger.info('relevant users are %s', relevant_users)
 
             callback(group, relevant_users)
 
     def go_to_gym(self, group, relevant_users):
-        print 'go to gym'
+        self.logger.info('reminding to go to the gym')
         if not relevant_users:
+            self.logger.info('there are no relevant users')
             return
         go_to_gym_plural = 'לכו היום לחדר כושר יא בוטים {training}'
         go_to_gym_individual = 'לך היום לחדר כושר יא בוט {training}'
@@ -125,23 +147,30 @@ class GymBot(object):
         training_today_msg = ' '.join('@' + user.first_name for user in relevant_users)
 
         if len(relevant_users) > 1:
+            self.logger.info('more than one user therefore creating plural msg')
             text = go_to_gym_plural.format(training=training_today_msg)
         else:
+            self.logger.info('one user creating msg for individual')
             text = go_to_gym_individual.format(training=training_today_msg)
 
         self.updater.bot.send_message(chat_id=group.id, text=text)
 
     def went_to_gym(self, group, relevant_users):
+        self.logger.info('asking who went to the gym')
+        self.logger.info('relevant users %s', relevant_users)
         if not relevant_users:
+            self.logger.info('there are no relevant users')
             return
+
         went_to_gym_plural = 'הלכתם היום לחדכ יא בוטים? {training}'
         went_to_gym_individual = 'הלכת היום לחדכ יא בוט? {training}'
-
         training_today_msg = ' '.join('@' + user.first_name for user in relevant_users)
 
         if len(relevant_users) > 1:
+            self.logger.info('more than one user therefore creating plural msg')
             text = went_to_gym_plural.format(training=training_today_msg)
         else:
+            self.logger.info('one user creating msg for individual')
             text = went_to_gym_individual.format(training=training_today_msg)
 
         allowed_users = ','.join(unicode(user.id) for user in relevant_users)
@@ -155,51 +184,62 @@ class GymBot(object):
                                       reply_markup=InlineKeyboardMarkup(keyboard))
 
     def went_to_gym_answer(self, bot, update):
-        print 'went to gym answer'
+        self.logger.info('answer to went to gym question')
         query = update.callback_query
         _, allowed_users, answer = query.data.split()
         allowed_users = [int(user_id) for user_id in json.loads(allowed_users)]
-        print allowed_users
+        self.logger.info('allowed to answer the question users %s', allowed_users)
         user = self.users.get(update.effective_user.id)
+        self.logger.info('the user that answered %s', user)
 
         if not user or user.id not in allowed_users:
+            self.logger.info('the user is not allowed to answer the question')
             bot.answerCallbackQuery(text='זה לא היום שלך להתאמן יא בוט',
                                     callback_query_id=update.callback_query.id)
             return
         if answer == 'yes':
+            self.logger.info('%s %s', user.first_name, 'answered yes')
             bot.send_message(chat_id=query.message.chat_id,
                              text='כל הכבוד {user} אלוף!'.format(user=user.first_name))
             bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,
                                     callback_query_id=update.callback_query.id)
         else:
+            self.logger.info('%s  %s', user.first_name, 'answered no')
             bot.send_message(chat_id=query.message.chat_id,
                              text='אפס מאופס {user}'.format(user=user.first_name))
             bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
                                     callback_query_id=update.callback_query.id)
 
     def set_reminders(self, bot, update):
-        print 'reminder'
+        self.logger.info('setting reminders')
         time = datetime.today().time()
         if time.hour < 9:
             pass
+        self.logger.info('X %s', 'time until first go to gym reminder')
         threading.Timer(timedelta(minutes=0, seconds=10).total_seconds(),
                         self._groups_daily_timer,
                         args=(self.go_to_gym, )).start()
 
+        self.logger.info('X %s', 'time until went to gym gym question')
         threading.Timer(timedelta(minutes=0, seconds=15).total_seconds(),
                         self._groups_daily_timer,
                         args=(self.went_to_gym, )).start()
 
     def new_group(self, bot, update):
-        print 'group'
+        self.logger.info('new group detected with id')
         new_chat_member = update.message.new_chat_members[0]
         group_id = update.message.chat_id
+        self.logger.info('new group id is %s', group_id)
+        self.logger.info('new chat member in the group is %s', new_chat_member.first_name)
 
         if new_chat_member.id == self.updater.bot.id and self.groups.get(group_id) is None:  # bot joined to new group
+            self.logger.info('bot joined to new group')
             group = Group(id=update.message.chat_id)
             self.session.add(group)
+            self.logger.info('created instance of the new group in the DB')
 
     def run(self):
+        self.logger.info('starting to run')
         handlers = (
             CommandHandler('register', self.register_command),  # register
             CommandHandler('mydays', self.my_days_command),  # mydays
@@ -212,13 +252,20 @@ class GymBot(object):
         for handler in handlers:
             self.dispatcher.add_handler(handler)
 
-        print 'starting to poll'
+        self.logger.info('starting to poll')
         self.updater.start_polling()
 
 
 if __name__ == '__main__':
-    updater = Updater(token=TOKEN)
-    dispatcher = updater.dispatcher
+    if sys.argv > 1:
+        token = sys.argv[1]
+    else:
+        token = os.environ['BOT_TOKEN']
 
-    GymBot(updater, dispatcher).run()
+    updater = Updater(token=token)
+    dispatcher = updater.dispatcher
+    logger = logging.getLogger(__name__)
+    logger.addHandler(logging.StreamHandler())
+
+    GymBot(updater, dispatcher, logger).run()
 
