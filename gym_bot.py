@@ -220,7 +220,7 @@ class GymBot(object):
             bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
                                     callback_query_id=update.callback_query.id)
 
-    def set_reminders(self, bot, update):
+    def set_reminders(self):
         self.logger.info('setting reminders')
         reminders = [
             {
@@ -273,7 +273,6 @@ class GymBot(object):
         handlers = (
             CommandHandler('register', self.register_command),  # register
             CommandHandler('mydays', self.my_days_command),  # mydays
-            CommandHandler('reminder', self.set_reminders),  # reminder
             MessageHandler(filters=Filters.status_update.new_chat_members, callback=self.new_group),  # new chat
             CallbackQueryHandler(pattern='register.*', callback=self.select_day),  # selected training day
             CallbackQueryHandler(pattern='went_to_gym.*', callback=self.went_to_gym_answer),  # went to gym answer
@@ -282,6 +281,7 @@ class GymBot(object):
         for handler in handlers:
             self.dispatcher.add_handler(handler)
 
+        self.set_reminders()
         self.logger.info('starting to poll')
         self.updater.start_polling()
 
