@@ -6,7 +6,7 @@ import sys
 import json
 import logging
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
@@ -14,15 +14,14 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters,
 from models import User, Group, Day
 from utils import get_db_session, upper_first_letter, WEIGHT_LIFTER_EMOJI, DAYS_NAME, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
-
 logging.basicConfig(filename='logs/gymbot.log',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 
 
 class GymBot(object):
-    REMINDER_TIME = None
-    CHECK_WHETHER_DONE_TIME = None
+    REMINDER_TIME = time(hour=9, minute=0)
+    CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0)
 
     def __init__(self, updater, dispatcher, logger):
         self.updater = updater
@@ -70,7 +69,7 @@ class GymBot(object):
             group.users.append(user)
             self.logger.info('added the user to group')
 
-        elif user not in group.users: # user exists but new in the current group.
+        elif user not in group.users:  # user exists but new in the current group.
             self.logger.info('user was not in the group')
             group.users.append(user)
 
@@ -153,6 +152,11 @@ class GymBot(object):
             text = go_to_gym_individual.format(training=training_today_msg)
 
         self.updater.bot.send_message(chat_id=group.id, text=text)
+        self.logger.info('finished to remind to group %s', group)
+        threading.Timer(timedelta(hours=23, minutes=59, seconds=45).total_seconds(),
+                        self._groups_daily_timer,
+                        args=(self.went_to_gym, ))
+        self.logger.info('set go to gym timer for tomorrow')
 
     def went_to_gym(self, group, relevant_users):
         self.logger.info('asking who went to the gym')
@@ -174,13 +178,20 @@ class GymBot(object):
 
         allowed_users = ','.join(unicode(user.id) for user in relevant_users)
         keyboard = [[InlineKeyboardButton('כן',
-                         callback_data='went_to_gym [{allowed_users}] yes'.format(allowed_users=allowed_users)),
-                    InlineKeyboardButton('אני אפס',
-                         callback_data='went_to_gym [{allowed_users}] no'.format(allowed_users=allowed_users))]]
+                                          callback_data='went_to_gym [{allowed_users}] yes'.format(
+                                              allowed_users=allowed_users)),
+                     InlineKeyboardButton('אני אפס',
+                                          callback_data='went_to_gym [{allowed_users}] no'.format(
+                                              allowed_users=allowed_users))]]
 
         self.updater.bot.send_message(chat_id=group.id,
                                       text=text,
                                       reply_markup=InlineKeyboardMarkup(keyboard))
+        self.logger.info('finished to remind to group %s', group)
+        threading.Timer(timedelta(hours=23, minutes=59, seconds=45).total_seconds(),
+                        self._groups_daily_timer,
+                        args=(self.went_to_gym, ))
+        self.logger.info('set went to gym timer for tomorrow')
 
     def went_to_gym_answer(self, bot, update):
         self.logger.info('answer to went to gym question')
@@ -211,18 +222,38 @@ class GymBot(object):
 
     def set_reminders(self, bot, update):
         self.logger.info('setting reminders')
-        time = datetime.today().time()
-        if time.hour < 9:
-            pass
-        self.logger.info('X %s', 'time until first go to gym reminder')
-        threading.Timer(timedelta(minutes=0, seconds=10).total_seconds(),
-                        self._groups_daily_timer,
-                        args=(self.go_to_gym, )).start()
+        reminders = [
+            {
+                'method': self._groups_daily_timer,
+                'time': self.REMINDER_TIME,
+                'args': (self.go_to_gym, )
+            },
+            {
+                'method': self._groups_daily_timer,
+                'time': self.CHECK_WHETHER_DONE_TIME,
+                'args': (self.went_to_gym, )
+            },
+        ]
+        for reminder in reminders:
+            now = datetime.today()
+            reminder_time = reminder['time']
+            desired_datetime = now.replace(hour=reminder_time.hour,
+                                           minute=reminder_time.minute)
+            if now > desired_datetime:  # time already passed- move to the next day.
+                desired_datetime += timedelta(days=1)
 
-        self.logger.info('X %s', 'time until went to gym gym question')
-        threading.Timer(timedelta(minutes=0, seconds=15).total_seconds(),
-                        self._groups_daily_timer,
-                        args=(self.went_to_gym, )).start()
+            seconds_to_wait = (desired_datetime - now).total_seconds()
+
+            self.logger.info('%s seconds until %s with args: %s',
+                             seconds_to_wait,
+                             reminder['method'].func_name,
+                             reminder['args'])
+
+            threading.Timer(seconds_to_wait,
+                            reminder['method'],
+                            args=reminder['args']).start()
+
+        self.logger.info('set all reminders')
 
     def new_group(self, bot, update):
         self.logger.info('new group detected with id')
@@ -267,4 +298,3 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     GymBot(updater, dispatcher, logger).run()
-

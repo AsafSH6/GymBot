@@ -20,6 +20,6 @@ Reminders:
 V** upload to github.
 ** host the bot in heroku.
 ** add the commands to the fatherbot.
-** write logs.
+V** write logs.
 ** refactor.
-** add repr methods to models.
+V** add repr methods to models.
