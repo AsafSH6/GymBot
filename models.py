@@ -1,5 +1,8 @@
 # encoding: utf-8
 from __future__ import unicode_literals
+
+import os
+
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Table, Column, ForeignKey, Integer, String, create_engine
@@ -63,7 +66,7 @@ class Group(Base):
 
 
 # engine = create_engine('sqlite:///sqlalchemy_example.db')
-engine = create_engine('')
+engine = create_engine(os.environ['POSTGRES_URL_CON'])
 
 # Create all tables in the engine. This is equivalent to "Create Table"
 # statements in raw SQL.
