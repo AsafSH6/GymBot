@@ -201,7 +201,7 @@ class GymBot(object):
         user = self.users.get(update.effective_user.id)
         self.logger.info('the user that answered %s', user)
 
-        if not user or user.id not in allowed_users:
+        if user is None or user.id not in allowed_users:
             self.logger.info('the user is not allowed to answer the question')
             bot.answerCallbackQuery(text='זה לא היום שלך להתאמן יא בוט',
                                     callback_query_id=update.callback_query.id)
@@ -265,7 +265,7 @@ class GymBot(object):
         self.logger.info('set all reminders')
 
     def new_group(self, bot, update):
-        self.logger.info('new group detected with id')
+        self.logger.info('new group detected')
         new_chat_member = update.message.new_chat_members[0]
         group_id = update.message.chat_id
         self.logger.info('new group id is %s', group_id)
