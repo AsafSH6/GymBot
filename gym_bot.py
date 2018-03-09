@@ -40,7 +40,7 @@ class GymBot(object):
             day_name = upper_first_letter(day.name)
             if day in already_selected_days:
                 day_name += ' ' + WEIGHT_LIFTER_EMOJI
-            keyboard.append([InlineKeyboardButton(day_name, callback_data='select_day {id} {idx}'.format(id=user.id,
+            keyboard.append([InlineKeyboardButton(day_name, callback_data='select_days {id} {idx}'.format(id=user.id,
                                                                                                        idx=idx))])
 
         return InlineKeyboardMarkup(keyboard)
