@@ -19,8 +19,8 @@ logging.basicConfig(filename='logs/gymbot.log',
 
 
 class GymBot(object):
-    REMINDER_TIME = time(hour=9, minute=0)
-    CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0)
+    REMINDER_TIME = time(hour=9, minute=0, second=0)
+    CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
 
     def __init__(self, db_session, updater, dispatcher, logger):
         self.updater = updater
@@ -242,7 +242,8 @@ class GymBot(object):
             reminder_time = reminder['time']
             logger.info('requested reminder time is %s', reminder_time)
             desired_datetime = now.replace(hour=reminder_time.hour,
-                                           minute=reminder_time.minute)
+                                           minute=reminder_time.minute,
+                                           second=reminder_time.second)
             if now > desired_datetime:  # time already passed- move to the next day.
                 logger.info('the time already passed, setting reminder for tomorrow')
                 desired_datetime += timedelta(days=1)
