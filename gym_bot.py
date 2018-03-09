@@ -95,7 +95,7 @@ class GymBot(object):
         selected_day = self.days.get(selected_day)
         self.logger.info('selected day %s', selected_day)
         if user not in selected_day.users:
-            self.logger.info('new selected day- adding it to the user training days')
+            self.logger.info('new selected day, adding it to the user training days')
             selected_day.users.append(user)
         else:
             self.logger.info('already selected day- removing it from the user training days')
