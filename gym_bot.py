@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import os
-import sys
 import json
 import logging
 import threading
@@ -32,27 +31,27 @@ class GymBot(object):
         self.days = self.session.query(Day)
         self.logger = logger
 
-    def _generate_inline_keyboard_for_registration(self, user):
-        self.logger.info('generation inline keyboard for registration for user %s', user)
-        already_registered_days = user.days
+    def _generate_inline_keyboard_for_select_days(self, user):
+        self.logger.info('generation inline keyboard for select days for user %s', user)
+        already_selected_days = user.days
 
         keyboard = []
         for idx, day in enumerate(self.days.all()):
             day_name = upper_first_letter(day.name)
-            if day in already_registered_days:
+            if day in already_selected_days:
                 day_name += ' ' + WEIGHT_LIFTER_EMOJI
-            keyboard.append([InlineKeyboardButton(day_name, callback_data='register {id} {idx}'.format(id=user.id,
+            keyboard.append([InlineKeyboardButton(day_name, callback_data='select_day {id} {idx}'.format(id=user.id,
                                                                                                        idx=idx))])
 
         return InlineKeyboardMarkup(keyboard)
 
-    def register_command(self, bot, update):
-        self.logger.info('register')
+    def select_day_command(self, bot, update):
+        self.logger.info('select days command')
         user_id = update.effective_user.id
         group_id = update.message.chat_id
 
         user = self.users.get(user_id)
-        self.logger.info('user to register %s', user)
+        self.logger.info('user to select days %s', user)
         group = self.groups.get(group_id)
         self.logger.info('the group is %s', group)
 
@@ -73,7 +72,7 @@ class GymBot(object):
             self.logger.info('user was not in the group')
             group.users.append(user)
 
-        keyboard = self._generate_inline_keyboard_for_registration(user)
+        keyboard = self._generate_inline_keyboard_for_select_days(user)
         update.message.reply_text('באיזה ימים אתה מתאמן יא בוט?', reply_markup=keyboard)
 
     def select_day(self, bot, update):
@@ -102,7 +101,7 @@ class GymBot(object):
             selected_day.users.remove(user)
         self.session.commit()
 
-        updated_keyboard = self._generate_inline_keyboard_for_registration(user)
+        updated_keyboard = self._generate_inline_keyboard_for_select_days(user)
         bot.edit_message_reply_markup(chat_id=query.message.chat_id,
                                       message_id=query.message.message_id,
                                       reply_markup=updated_keyboard)
@@ -271,10 +270,10 @@ class GymBot(object):
     def run(self):
         self.logger.info('starting to run')
         handlers = (
-            CommandHandler('register', self.register_command),  # register
+            CommandHandler('select_days', self.select_day_command),  # select days
             CommandHandler('mydays', self.my_days_command),  # mydays
             MessageHandler(filters=Filters.status_update.new_chat_members, callback=self.new_group),  # new chat
-            CallbackQueryHandler(pattern='register.*', callback=self.select_day),  # selected training day
+            CallbackQueryHandler(pattern='select_days.*', callback=self.select_day),  # selected training day
             CallbackQueryHandler(pattern='went_to_gym.*', callback=self.went_to_gym_answer),  # went to gym answer
         )
 
