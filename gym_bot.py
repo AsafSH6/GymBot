@@ -23,10 +23,10 @@ class GymBot(object):
     REMINDER_TIME = time(hour=9, minute=0)
     CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0)
 
-    def __init__(self, updater, dispatcher, logger):
+    def __init__(self, db_session, updater, dispatcher, logger):
         self.updater = updater
         self.dispatcher = dispatcher
-        self.session = get_db_session()
+        self.session = db_session
         self.users = self.session.query(User)
         self.groups = self.session.query(Group)
         self.days = self.session.query(Day)
@@ -287,14 +287,13 @@ class GymBot(object):
 
 
 if __name__ == '__main__':
-    if sys.argv > 1:
-        token = sys.argv[1]
-    else:
-        token = os.environ['BOT_TOKEN']
+    token = os.environ['BOT_TOKEN']
+    db_con_string = os.environ['POSTGRES_URL_CON']
 
     updater = Updater(token=token)
     dispatcher = updater.dispatcher
     logger = logging.getLogger(__name__)
     logger.addHandler(logging.StreamHandler())
 
-    GymBot(updater, dispatcher, logger).run()
+    db_session = get_db_session(db_con_string)
+    GymBot(db_session, updater, dispatcher, logger).run()

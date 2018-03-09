@@ -18,9 +18,8 @@ def upper_first_letter(name):
     return name[0].upper() + name[1:]
 
 
-def get_db_session():
-    # engine = create_engine('sqlite:///sqlalchemy_example.db')
-    engine = create_engine('postgres://bmkeltax:mj9riixCKwtgLVg30HMk7x_KX8lTgZXS@horton.elephantsql.com:5432/bmkeltax')
+def get_db_session(db_con_string):
+    engine = create_engine(db_con_string)
     Base.metadata.bind = engine
     DBSession = sessionmaker(bind=engine)
     return DBSession()
