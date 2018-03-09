@@ -16,10 +16,12 @@ Reminders:
     1. Who have to go to the gym today.
     2. Ask who went to the gym.
 
-** add username to User in order to @tag.
+X** add username to User in order to @tag.
 V** upload to github.
-** host the bot in heroku.
-** add the commands to the fatherbot.
+V** host the bot in heroku.
+V** add the commands to the fatherbot.
 V** write logs.
 ** refactor.
 V** add repr methods to models.
+** user emoji library.
+** ask every week to select the training days.
