@@ -235,12 +235,20 @@ class GymBot(object):
         ]
 
         for reminder in reminders:
+            logger.info('preparing remind of %s with args: %s',
+                        reminder['method'].func_name,
+                        reminder['args'])
             now = datetime.today()
             reminder_time = reminder['time']
+            logger.info('requested reminder time is %s', reminder_time)
             desired_datetime = now.replace(hour=reminder_time.hour,
                                            minute=reminder_time.minute)
             if now > desired_datetime:  # time already passed- move to the next day.
+                logger.info('the time already passed, setting reminder for tomorrow')
                 desired_datetime += timedelta(days=1)
+            else:
+                logger.info('the time did not pass, setting reminder for today')
+            logger.info('requested reminder datetime is %s', desired_datetime)
 
             seconds_to_wait = (desired_datetime - now).total_seconds()
 
