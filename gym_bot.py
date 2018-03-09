@@ -177,11 +177,11 @@ class GymBot(object):
 
         allowed_users = ','.join(unicode(user.id) for user in relevant_users)
         keyboard = [[InlineKeyboardButton('כן',
-                                          callback_data='went_to_gym [{allowed_users}] yes'.format(
-                                              allowed_users=allowed_users)),
+                                    callback_data='went_to_gym [{allowed_users}] yes'.format(
+                                    allowed_users=allowed_users)),
                      InlineKeyboardButton('אני אפס',
                                           callback_data='went_to_gym [{allowed_users}] no'.format(
-                                              allowed_users=allowed_users))]]
+                                          allowed_users=allowed_users))]]
 
         self.updater.bot.send_message(chat_id=group.id,
                                       text=text,
@@ -233,6 +233,7 @@ class GymBot(object):
                 'args': (self.went_to_gym, )
             },
         ]
+
         for reminder in reminders:
             now = datetime.today()
             reminder_time = reminder['time']
