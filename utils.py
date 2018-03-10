@@ -10,7 +10,7 @@ WEIGHT_LIFTER_EMOJI = u'🏋️'
 THUMBS_UP_EMOJI = u'👍'
 THUMBS_DOWN_EMOJI = u'👎'
 
-DAYS_NAME = 'sunday monday tuesday wednesday thursday friday saturday'.split()
+DAYS_NAME = 'Sunday Monday Tuesday Wednesday Thursday Friday Saturday'.split()
 HEBREW_DAYS_NAME = 'ראשון שני שלישי רביעי חמישי שישי שבת'.split()
 
 

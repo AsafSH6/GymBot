@@ -91,7 +91,8 @@ class GymBot(object):
                                     parse_mode=ParseMode.HTML)
             return
 
-        selected_day = DAYS_NAME[int(selected_day_index)]
+        logger.info('selected day index %s', selected_day_index)
+        selected_day = DAYS_NAME[int(selected_day_index) % 7]
         selected_day = self.days.get(selected_day)
         self.logger.info('selected day %s', selected_day)
         if user not in selected_day.users:
