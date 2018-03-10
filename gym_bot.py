@@ -15,7 +15,7 @@ from utils import get_db_session, upper_first_letter, WEIGHT_LIFTER_EMOJI, DAYS_
 
 logging.basicConfig(filename='logs/gymbot.log',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 
 class GymBot(object):
@@ -59,6 +59,7 @@ class GymBot(object):
             self.logger.info('the group does not exist in DB')
             group = Group(id=group_id)
             self.session.add(group)
+            self.logger.info('created group %s', group)
 
         if user is None:  # new user.
             self.logger.info('user does not exist in the DB')

@@ -5,7 +5,7 @@ import os
 
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Table, Column, ForeignKey, Integer, String, create_engine
+from sqlalchemy import Table, Column, ForeignKey, Integer, BigInteger, String, create_engine
 
 Base = declarative_base()
 
@@ -15,7 +15,7 @@ user_and_days_association_table = Table('user_and_days', Base.metadata,
 )
 
 user_and_groups_association_table = Table('user_and_groups', Base.metadata,
-    Column('group', Integer, ForeignKey('group.id')),
+    Column('group', BigInteger, ForeignKey('group.id')),
     Column('user', Integer, ForeignKey('user.id'))
 )
 
@@ -52,7 +52,7 @@ class User(Base):
 
 class Group(Base):
     __tablename__ = 'group'
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     users = relationship('User', secondary=user_and_groups_association_table, backref='group')
 
     def __repr__(self):
