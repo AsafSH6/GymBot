@@ -41,7 +41,7 @@ class GymBot(object):
             if day in already_selected_days:
                 day_name += ' ' + WEIGHT_LIFTER_EMOJI
             keyboard.append([InlineKeyboardButton(day_name, callback_data='select_days {id} {idx}'.format(id=user.id,
-                                                                                                       idx=idx))])
+                                                                                                          idx=idx))])
 
         return InlineKeyboardMarkup(keyboard)
 
@@ -92,14 +92,14 @@ class GymBot(object):
             return
 
         logger.info('selected day index %s', selected_day_index)
-        selected_day = DAYS_NAME[int(selected_day_index) % 7]
+        selected_day = DAYS_NAME[int(selected_day_index)]
         selected_day = self.days.get(selected_day)
         self.logger.info('selected day %s', selected_day)
         if user not in selected_day.users:
             self.logger.info('new selected day, adding it to the user training days')
             selected_day.users.append(user)
         else:
-            self.logger.info('already selected day- removing it from the user training days')
+            self.logger.info('already selected day, removing it from the user training days')
             selected_day.users.remove(user)
         self.session.commit()
 
@@ -125,7 +125,7 @@ class GymBot(object):
         self.logger.info('callback method: %s', callback.func_name)
         for group in self.groups.all():
             self.logger.info('checking group %s %s %s', group, 'with users', group.users)
-            today_name = upper_first_letter(datetime.now().strftime('%A').lower())
+            today_name = upper_first_letter(datetime.now().strftime('%A'))
             today = self.days.get(today_name)
             self.logger.info('the day is %s', today)
 
@@ -134,6 +134,11 @@ class GymBot(object):
             self.logger.info('relevant users are %s', relevant_users)
 
             callback(group, relevant_users)
+
+        threading.Timer(timedelta(hours=23, minutes=59, seconds=59).total_seconds(),
+                        self._groups_daily_timer,
+                        args=(callback, ))
+        self.logger.info('set %s timer for tomorrow', callback.func_name)
 
     def go_to_gym(self, group, relevant_users):
         self.logger.info('reminding to go to the gym')
@@ -154,10 +159,6 @@ class GymBot(object):
 
         self.updater.bot.send_message(chat_id=group.id, text=text)
         self.logger.info('finished to remind to group %s', group)
-        threading.Timer(timedelta(hours=23, minutes=59, seconds=45).total_seconds(),
-                        self._groups_daily_timer,
-                        args=(self.went_to_gym, ))
-        self.logger.info('set go to gym timer for tomorrow')
 
     def went_to_gym(self, group, relevant_users):
         self.logger.info('asking who went to the gym')
@@ -179,20 +180,16 @@ class GymBot(object):
 
         allowed_users = ','.join(unicode(user.id) for user in relevant_users)
         keyboard = [[InlineKeyboardButton('כן',
-                                    callback_data='went_to_gym [{allowed_users}] yes'.format(
-                                    allowed_users=allowed_users)),
+                                          callback_data='went_to_gym [{allowed_users}] yes'.format(
+                                                        allowed_users=allowed_users)),
                      InlineKeyboardButton('אני אפס',
                                           callback_data='went_to_gym [{allowed_users}] no'.format(
-                                          allowed_users=allowed_users))]]
+                                                        allowed_users=allowed_users))]]
 
         self.updater.bot.send_message(chat_id=group.id,
                                       text=text,
                                       reply_markup=InlineKeyboardMarkup(keyboard))
         self.logger.info('finished to remind to group %s', group)
-        threading.Timer(timedelta(hours=23, minutes=59, seconds=45).total_seconds(),
-                        self._groups_daily_timer,
-                        args=(self.went_to_gym, ))
-        self.logger.info('set went to gym timer for tomorrow')
 
     def went_to_gym_answer(self, bot, update):
         self.logger.info('answer to went to gym question')
