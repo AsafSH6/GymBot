@@ -125,7 +125,7 @@ class GymBot(object):
         self.logger.info('callback method: %s', callback.func_name)
         for group in self.groups.all():
             self.logger.info('checking group %s %s %s', group, 'with users', group.users)
-            today_name = datetime.now().strftime('%A').lower()
+            today_name = upper_first_letter(datetime.now().strftime('%A').lower())
             today = self.days.get(today_name)
             self.logger.info('the day is %s', today)
 
