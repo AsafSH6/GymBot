@@ -19,7 +19,7 @@ logging.basicConfig(filename='logs/gymbot.log',
 
 
 class GymBot(object):
-    REMINDER_TIME = time(hour=9, minute=0, second=0)
+    REMINDER_TIME = time(hour=9, minute=10, second=0)
     CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
 
     def __init__(self, db_session, updater, dispatcher, logger):
