@@ -84,7 +84,7 @@ class GymBot(object):
         self.logger.info('user selected %s', user)
         _, user_id, selected_day_index = query.data.split()
 
-        if user is None or user.id != int(user_id):
+        if user is None or user.id != user_id:
             self.logger.info('user is not allow to choose for others')
             bot.answerCallbackQuery(text='אי אפשר לבחור לאחרים יא בוט',
                                     callback_query_id=update.callback_query.id,
@@ -195,7 +195,7 @@ class GymBot(object):
         self.logger.info('answer to went to gym question')
         query = update.callback_query
         _, allowed_users, answer = query.data.split()
-        allowed_users = [int(user_id) for user_id in json.loads(allowed_users)]
+        allowed_users = json.loads(allowed_users)
         self.logger.info('allowed to answer the question users %s', allowed_users)
         user = self.users.get(update.effective_user.id)
         self.logger.info('the user that answered %s', user)
@@ -205,6 +205,7 @@ class GymBot(object):
             bot.answerCallbackQuery(text='זה לא היום שלך להתאמן יא בוט',
                                     callback_query_id=update.callback_query.id)
             return
+
         if answer == 'yes':
             self.logger.info('%s %s', user.first_name, 'answered yes')
             bot.send_message(chat_id=query.message.chat_id,
