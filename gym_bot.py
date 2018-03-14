@@ -137,7 +137,7 @@ class GymBot(object):
 
         threading.Timer(timedelta(hours=23, minutes=59, seconds=59).total_seconds(),
                         self._groups_daily_timer,
-                        args=(callback, ))
+                        args=(callback, )).start()
         self.logger.info('set %s timer for tomorrow', callback.func_name)
 
     def go_to_gym(self, group, relevant_users):
