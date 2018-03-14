@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from models import Base
 
 WEIGHT_LIFTER_EMOJI = u'🏋️'
 THUMBS_UP_EMOJI = u'👍'
@@ -19,6 +18,7 @@ def upper_first_letter(name):
 
 
 def get_db_session(db_con_string):
+    from models import Base
     engine = create_engine(db_con_string)
     Base.metadata.bind = engine
     DBSession = sessionmaker(bind=engine)

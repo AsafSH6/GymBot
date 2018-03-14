@@ -19,7 +19,7 @@ logging.basicConfig(filename='logs/gymbot.log',
 
 
 class GymBot(object):
-    REMINDER_TIME = time(hour=9, minute=10, second=0)
+    REMINDER_TIME = time(hour=9, minute=0, second=0)
     CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
 
     def __init__(self, db_session, updater, dispatcher, logger):
@@ -295,6 +295,11 @@ class GymBot(object):
 
 
 if __name__ == '__main__':
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        os.environ['BOT_TOKEN'] = os.environ['BOT_TOKEN_TEST']
+        os.environ['POSTGRES_URL_CON'] = os.environ['POSTGRES_URL_CON_TEST']
+
     token = os.environ['BOT_TOKEN']
     db_con_string = os.environ['POSTGRES_URL_CON']
 
