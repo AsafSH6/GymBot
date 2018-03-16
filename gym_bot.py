@@ -10,7 +10,7 @@ from datetime import datetime, time, timedelta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
-from models import User, Group, Day
+from models_sqlalchemy import User, Group, Day
 from utils import get_db_session, upper_first_letter, WEIGHT_LIFTER_EMOJI, DAYS_NAME, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 logging.basicConfig(filename='logs/gymbot.log',

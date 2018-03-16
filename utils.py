@@ -18,7 +18,7 @@ def upper_first_letter(name):
 
 
 def get_db_session(db_con_string):
-    from models import Base, ExtendedQuery
+    from models_sqlalchemy import Base, ExtendedQuery
     engine = create_engine(db_con_string)
     Base.metadata.bind = engine
     DBSession = sessionmaker(bind=engine, query_cls=ExtendedQuery)
