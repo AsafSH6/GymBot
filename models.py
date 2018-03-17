@@ -75,9 +75,9 @@ class Group(Document):
     meta = {'queryset_class': ExtendedQuerySet}
 
     @classmethod
-    def create(cls, group_id, users=[]):
+    def create(cls, group_id, trainees=[]):
         new_group = cls(id=unicode(group_id))
-        new_group.trainees.extend(users)
+        new_group.trainees.extend(trainees)
 
         return new_group.save()
 
