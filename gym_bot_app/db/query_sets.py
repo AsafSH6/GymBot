@@ -20,7 +20,7 @@ class TraineeQuerySet(ExtendedQuerySet):
         training_days = get_week_days()
 
         return super(TraineeQuerySet, self).create(id=unicode(id),
-                                                   first_name=first_name,
+                                                   first_name=unicode(first_name),
                                                    training_days=training_days)
 
 

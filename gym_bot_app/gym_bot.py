@@ -14,8 +14,9 @@ from gym_bot_app.db.models import Group, Trainee
 from utils import upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 logging.basicConfig(filename='logs/gymbot.log',
+                    encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 
 class GymBot(object):
