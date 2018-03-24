@@ -20,3 +20,4 @@ telegram==0.0.1
 traitlets==4.3.2
 wcwidth==0.1.7
 win-unicode-console==0.5
+emoji==0.4.5
