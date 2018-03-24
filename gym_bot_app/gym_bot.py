@@ -10,7 +10,7 @@ from datetime import datetime, time, timedelta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
-from gym_bot_app.db.models import Group, Trainee
+from gym_bot_app.db.models import Group, Trainee, Day
 from utils import upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 logging.basicConfig(filename='logs/gymbot.log',
@@ -22,6 +22,7 @@ logging.basicConfig(filename='logs/gymbot.log',
 class GymBot(object):
     REMINDER_TIME = time(hour=9, minute=0, second=0)
     CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
+    NEW_WEEK_SELECT_DAYS = time(hour=21, minute=30, second=0)  # TODO: change to datetime and select saturday.
 
     def __init__(self, updater, dispatcher, logger):
         self.updater = updater
@@ -42,6 +43,21 @@ class GymBot(object):
 
         return InlineKeyboardMarkup(keyboard)
 
+    def _generate_inline_keyboard_for_new_week_select_days(self, group):
+        self.logger.info('generation inline keyboard for new week select days for group %s', group)
+        keyboard = []
+        for idx, day in enumerate(Day.get_week_days()):
+            day_name = day.name
+
+            trainees = group.get_trainees_in_day(day_name)
+            if trainees:
+                day_name += ': ' + ' '.join(trainee.first_name
+                                            for trainee in trainees)
+
+            keyboard.append([InlineKeyboardButton(day_name, callback_data='new_week {idx}'.format(idx=idx))])
+
+        return InlineKeyboardMarkup(keyboard)
+
     def select_day_command(self, bot, update):
         self.logger.info('select days command')
         trainee_id = update.effective_user.id
@@ -54,7 +70,7 @@ class GymBot(object):
 
         if not group:
             self.logger.info('the group does not exist in DB')
-            group = Group.create(group_id=group_id)
+            group = Group.objects.create(id=group_id)
             self.logger.info('created group %s', group)
 
         if trainee is None:  # new trainee.
@@ -133,6 +149,42 @@ class GymBot(object):
                         self._groups_daily_timer,
                         args=(callback, )).start()
         self.logger.info('set %s timer for tomorrow', callback.func_name)
+
+    def new_week_select_days(self):
+        self.logger.info('reminding to select days for new week')
+        for group in Group.objects:
+            logger.info('new week remind for %s', group)
+            for trainee in group.trainees:
+                trainee.unselect_all_days()
+            logger.info('unselected all days for the trainees in group')
+
+            keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
+            self.updater.bot.send_message(chat_id=group.id,
+                                          text='כל הבוטים, מוזמנים למלא את ימי חדר כושר לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
+                                          reply_markup=keyboard)
+
+        threading.Timer(timedelta(weeks=1).total_seconds(),
+                        self.new_week_select_days).start()
+
+    def new_week_selected_day(self, bot, update):
+        self.logger.info('new week selected day')
+        query = update.callback_query
+
+        trainee = Trainee.objects.get(id=update.effective_user.id)
+        self.logger.info('trainee selected %s', trainee)
+        _, selected_day_index = query.data.split()
+        selected_day = trainee.training_days[int(selected_day_index)]
+        selected_day.selected = not selected_day.selected
+        trainee.save()
+
+        group = Group.objects.get(id=query.message.chat_id)
+        keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
+        bot.edit_message_reply_markup(chat_id=group.id,
+                                      message_id=query.message.message_id,
+                                      reply_markup=keyboard)
+
+        bot.answerCallbackQuery(text="selected {}".format(upper_first_letter(selected_day.name)),
+                                callback_query_id=update.callback_query.id)
 
     def go_to_gym(self, group, relevant_trainees):
         self.logger.info('reminding to go to the gym')
@@ -226,6 +278,11 @@ class GymBot(object):
                 'time': self.CHECK_WHETHER_DONE_TIME,
                 'args': (self.went_to_gym, )
             },
+            {
+                'method': self.new_week_select_days,
+                'time': self.NEW_WEEK_SELECT_DAYS,
+                'args': tuple([])
+            },
         ]
 
         for reminder in reminders:
@@ -267,7 +324,7 @@ class GymBot(object):
 
         if new_chat_member.id == self.updater.bot.id and Group.objects.get(id=group_id) is None:  # bot joined to new group
             self.logger.info('bot joined to new group')
-            group = Group.create(group_id=update.message.chat_id)
+            group = Group.objects.create(id=update.message.chat_id)
             self.logger.info('created instance of the new group in the DB %s', group)
 
     def run(self):

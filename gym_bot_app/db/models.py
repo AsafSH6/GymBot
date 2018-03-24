@@ -40,6 +40,12 @@ class Trainee(Document):
 
     meta = {'queryset_class': TraineeQuerySet}
 
+    def unselect_all_days(self):
+        for day in self.training_days:
+            day.selected = False
+
+        self.save()
+
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,
                                                     first_name=self.first_name)
@@ -74,7 +80,7 @@ class Group(Document):
 
     def __repr__(self):
         return '<Group {id} [{trainees}]>'.format(id=self.id,
-                                                  trainees='{trainee},'.join(str(trainee) for trainee in self.trainees))
+                                                  trainees=', '.join(str(trainee) for trainee in self.trainees))
 
     def __str__(self):
         return repr(self)

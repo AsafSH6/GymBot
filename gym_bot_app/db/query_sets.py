@@ -25,4 +25,6 @@ class TraineeQuerySet(ExtendedQuerySet):
 
 
 class GroupQuerySet(ExtendedQuerySet):
-    pass
+    def create(self, id, trainees=[]):
+        return super(GroupQuerySet, self).create(id=unicode(id),
+                                                 trainees=trainees)
