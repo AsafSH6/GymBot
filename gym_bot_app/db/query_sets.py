@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from mongoengine import QuerySet, DoesNotExist
-from models import Day
+from gym_bot_app.utils import get_week_days
 
 
 class ExtendedQuerySet(QuerySet):
@@ -16,9 +16,13 @@ class ExtendedQuerySet(QuerySet):
 
 
 class TraineeQuerySet(ExtendedQuerySet):
-    def create(self, trainee_id, first_name):
-        training_days = Day.get_week_days()
+    def create(self, id, first_name):
+        training_days = get_week_days()
 
-        return super(TraineeQuerySet, self).create(trainee_id=unicode(trainee_id),
+        return super(TraineeQuerySet, self).create(id=unicode(id),
                                                    first_name=first_name,
                                                    training_days=training_days)
+
+
+class GroupQuerySet(ExtendedQuerySet):
+    pass

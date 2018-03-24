@@ -1,16 +1,16 @@
 # encoding: utf-8
 from __future__ import unicode_literals
-from gym_bot_app.utils import DAYS_NAME, upper_first_letter
-from gym_bot_app.db.query_sets import TraineeQuerySet
+from gym_bot_app.utils import (DAYS_NAME,
+                               upper_first_letter)
+from gym_bot_app.db.query_sets import (TraineeQuerySet,
+                                       GroupQuerySet)
 from mongoengine import (Document,
                          ListField,
                          StringField,
                          BooleanField,
                          EmbeddedDocument,
                          EmbeddedDocumentListField,
-                         CachedReferenceField,
-                         QuerySet,
-                         DoesNotExist)
+                         CachedReferenceField)
 
 
 class Day(EmbeddedDocument):
@@ -40,14 +40,6 @@ class Trainee(Document):
 
     meta = {'queryset_class': TraineeQuerySet}
 
-    # TODO: think if to add it under query manager.
-    @classmethod
-    def create(cls, trainee_id, first_name):
-        new_trainee = cls(id=unicode(trainee_id), first_name=first_name)
-        new_trainee.training_days.extend(Day.get_week_days())
-
-        return new_trainee.save()
-
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,
                                                     first_name=self.first_name)
@@ -63,7 +55,7 @@ class Group(Document):
     id = StringField(required=True, primary_key=True)
     trainees = ListField(CachedReferenceField(Trainee, auto_sync=True))
 
-    # meta = {'queryset_class': ExtendedQuerySet}
+    meta = {'queryset_class': GroupQuerySet}
 
     @classmethod
     def create(cls, group_id, trainees=[]):

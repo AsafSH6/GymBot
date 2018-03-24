@@ -12,3 +12,8 @@ HEBREW_DAYS_NAME = 'ראשון שני שלישי רביעי חמישי שישי 
 
 def upper_first_letter(name):
     return name[0].upper() + name[1:].lower()
+
+
+def get_week_days():
+    from gym_bot_app.db.models import Day
+    return Day.get_week_days()

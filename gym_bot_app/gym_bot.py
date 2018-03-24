@@ -13,7 +13,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters,
 from gym_bot_app.db.models import Group, Trainee
 from utils import upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
-logging.basicConfig(filename='../logs/gymbot.log',
+logging.basicConfig(filename='logs/gymbot.log',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 
@@ -43,7 +43,7 @@ class GymBot(object):
 
     def select_day_command(self, bot, update):
         self.logger.info('select days command')
-        trainee_id = update.effective_trainee.id
+        trainee_id = update.effective_user.id
         group_id = update.message.chat_id
 
         trainee = Trainee.objects.get(id=trainee_id)
@@ -58,7 +58,7 @@ class GymBot(object):
 
         if trainee is None:  # new trainee.
             self.logger.info('trainee does not exist in the DB')
-            trainee = Trainee.create(trainee_id=trainee_id, first_name=update.effective_trainee.first_name)
+            trainee = Trainee.objects.create(id=trainee_id, first_name=update.effective_user.first_name)
             self.logger.info('created trainee in DB %s', trainee)
             group.add_trainee(new_trainee=trainee)
             self.logger.info('added the trainee to group')
@@ -74,7 +74,7 @@ class GymBot(object):
         self.logger.info('select day')
         query = update.callback_query
 
-        trainee = Trainee.objects.get(id=update.effective_trainee.id)
+        trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('trainee selected %s', trainee)
         _, trainee_id, selected_day_index = query.data.split()
 
@@ -106,7 +106,7 @@ class GymBot(object):
 
     def my_days_command(self, bot, update):
         self.logger.info('my days command')
-        trainee = Trainee.objects.get(id=update.effective_trainee.id)
+        trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('requested by trainee %s', trainee)
         text = ' '.join(day.name for day in trainee.training_days.filter(selected=True))
         self.logger.info('trainee days %s', text)
@@ -188,7 +188,7 @@ class GymBot(object):
         _, allowed_trainees, answer = query.data.split()
         allowed_trainees = json.loads(allowed_trainees)
         self.logger.info('allowed to answer the question trainees %s', allowed_trainees)
-        trainee = Trainee.objects.get(id=update.effective_trainee.id)
+        trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('the trainee that answered %s', trainee)
 
         if trainee is None or trainee.id not in allowed_trainees:
