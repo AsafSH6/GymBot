@@ -2,8 +2,10 @@ backports.shutil-get-terminal-size==1.0.0
 certifi==2018.1.18
 colorama==0.3.9
 decorator==4.2.1
+emoji==0.4.5
 enum34==1.1.6
 future==0.16.0
+ipdb==0.11
 ipython==5.5.0
 ipython-genutils==0.2.0
 mongoengine==0.15.0
@@ -12,7 +14,7 @@ pickleshare==0.7.4
 prompt-toolkit==1.0.15
 Pygments==2.2.0
 pymongo==3.6.1
-python-telegram-bot==9.0.0
+python-telegram-bot==10.0.1
 scandir==1.7
 simplegeneric==0.8.1
 six==1.11.0
@@ -20,4 +22,3 @@ telegram==0.0.1
 traitlets==4.3.2
 wcwidth==0.1.7
 win-unicode-console==0.5
-emoji==0.4.5

@@ -7,7 +7,7 @@ import logging
 import threading
 from datetime import datetime, time, timedelta
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, error
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
 from gym_bot_app.db.models import Group, Trainee, Day
@@ -16,7 +16,7 @@ from utils import upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, TH
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 
 class GymBot(object):
@@ -51,7 +51,7 @@ class GymBot(object):
 
             trainees = group.get_trainees_in_day(day_name)
             if trainees:
-                day_name += ': ' + ' '.join(trainee.first_name
+                day_name += ': ' + ', '.join(trainee.first_name
                                             for trainee in trainees)
 
             keyboard.append([InlineKeyboardButton(day_name, callback_data='new_week {idx}'.format(idx=idx))])
@@ -114,12 +114,17 @@ class GymBot(object):
         trainee.save()
 
         updated_keyboard = self._generate_inline_keyboard_for_select_days(trainee)
-        bot.edit_message_reply_markup(chat_id=query.message.chat_id,
-                                      message_id=query.message.message_id,
-                                      reply_markup=updated_keyboard)
-
-        bot.answerCallbackQuery(text="selected {}".format(upper_first_letter(selected_day.name)),
-                                callback_query_id=update.callback_query.id)
+        try:
+            bot.edit_message_reply_markup(chat_id=query.message.chat_id,
+                                          message_id=query.message.message_id,
+                                          reply_markup=updated_keyboard)
+            bot.answerCallbackQuery(text='selected {}'.format(upper_first_letter(selected_day.name)),
+                                    callback_query_id=update.callback_query.id)
+        except error.BadRequest:
+            self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
+                              ' another keyboard.')
+            bot.answerCallbackQuery(text='יא בוט על חלל, כבר שינית את זה במקום אחר...',
+                                    callback_query_id=update.callback_query.id)
 
     def my_days_command(self, bot, update):
         self.logger.info('my days command')
@@ -160,7 +165,7 @@ class GymBot(object):
 
             keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
             self.updater.bot.send_message(chat_id=group.id,
-                                          text='כל הבוטים, מוזמנים למלא את ימי חדר כושר לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
+                                          text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
                                           reply_markup=keyboard)
 
         threading.Timer(timedelta(weeks=1).total_seconds(),
@@ -179,12 +184,17 @@ class GymBot(object):
 
         group = Group.objects.get(id=query.message.chat_id)
         keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
-        bot.edit_message_reply_markup(chat_id=group.id,
-                                      message_id=query.message.message_id,
-                                      reply_markup=keyboard)
-
-        bot.answerCallbackQuery(text="selected {}".format(upper_first_letter(selected_day.name)),
-                                callback_query_id=update.callback_query.id)
+        try:
+            bot.edit_message_reply_markup(chat_id=group.id,
+                                          message_id=query.message.message_id,
+                                          reply_markup=keyboard)
+            bot.answerCallbackQuery(text="selected {}".format(upper_first_letter(selected_day.name)),
+                                    callback_query_id=update.callback_query.id)
+        except error.BadRequest:
+            self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
+                              ' another keyboard.')
+            bot.answerCallbackQuery(text='יא בוט על חלל, כבר שינית את זה במקום אחר...',
+                                    callback_query_id=update.callback_query.id)
 
     def go_to_gym(self, group, relevant_trainees):
         self.logger.info('reminding to go to the gym')
@@ -335,6 +345,7 @@ class GymBot(object):
             MessageHandler(filters=Filters.status_update.new_chat_members, callback=self.new_group),  # new chat
             CallbackQueryHandler(pattern='select_days.*', callback=self.select_day),  # selected training day
             CallbackQueryHandler(pattern='went_to_gym.*', callback=self.went_to_gym_answer),  # went to gym answer
+            CallbackQueryHandler(pattern='new_week.*', callback=self.new_week_selected_day),  # new week select day answer
         )
 
         for handler in handlers:
