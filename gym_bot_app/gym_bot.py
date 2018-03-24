@@ -10,17 +10,17 @@ from datetime import datetime, time, timedelta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
-from models import Group, Trainee
+from gym_bot_app.db.models import Group, Trainee
 from utils import upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
-logging.basicConfig(filename='logs/gymbot.log',
+logging.basicConfig(filename='../logs/gymbot.log',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 
 
 class GymBot(object):
     REMINDER_TIME = time(hour=9, minute=0, second=0)
-    CHECK_WHETHER_DONE_TIME = time(hour=21, minute=10, second=0)
+    CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
 
     def __init__(self, updater, dispatcher, logger):
         self.updater = updater

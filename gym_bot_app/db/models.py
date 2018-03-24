@@ -1,6 +1,7 @@
 # encoding: utf-8
 from __future__ import unicode_literals
-from utils import DAYS_NAME, upper_first_letter
+from gym_bot_app.utils import DAYS_NAME, upper_first_letter
+from gym_bot_app.db.query_sets import TraineeQuerySet
 from mongoengine import (Document,
                          ListField,
                          StringField,
@@ -10,16 +11,6 @@ from mongoengine import (Document,
                          CachedReferenceField,
                          QuerySet,
                          DoesNotExist)
-
-
-class ExtendedQuerySet(QuerySet):
-    def get(self, *q_objs, **query):
-        try:
-            if 'id' in query:
-                query['id'] = unicode(query['id'])
-            return super(ExtendedQuerySet, self).get(*q_objs, **query)
-        except DoesNotExist:
-            return None
 
 
 class Day(EmbeddedDocument):
@@ -47,7 +38,7 @@ class Trainee(Document):
     first_name = StringField(required=True)
     training_days = EmbeddedDocumentListField(Day)
 
-    meta = {'queryset_class': ExtendedQuerySet}
+    meta = {'queryset_class': TraineeQuerySet}
 
     # TODO: think if to add it under query manager.
     @classmethod
@@ -72,7 +63,7 @@ class Group(Document):
     id = StringField(required=True, primary_key=True)
     trainees = ListField(CachedReferenceField(Trainee, auto_sync=True))
 
-    meta = {'queryset_class': ExtendedQuerySet}
+    # meta = {'queryset_class': ExtendedQuerySet}
 
     @classmethod
     def create(cls, group_id, trainees=[]):
