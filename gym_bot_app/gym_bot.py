@@ -109,9 +109,11 @@ class GymBot(object):
         self.logger.info('my days command')
         trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('requested by trainee %s', trainee)
-        text = ' '.join(day.name for day in trainee.training_days.filter(selected=True))
+        text = ', '.join(day.name for day in trainee.training_days.filter(selected=True))
         self.logger.info('trainee days %s', text)
+
         bot.send_message(chat_id=update.message.chat_id,
+                         reply_to_message_id=update.message.message_id,
                          text=text)
 
     def _groups_daily_timer(self, callback):
