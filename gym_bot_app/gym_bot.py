@@ -11,12 +11,54 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, erro
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
 from gym_bot_app.db.models import Group, Trainee, Day
-from utils import upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
+from utils import get_bot_and_update_from_args, upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
+
+
+def get_trainee(func):
+    def wrapper(*args, **kwargs):
+        bot, update = get_bot_and_update_from_args(args)
+        trainee_id = update.effective_user.id
+        trainee = Trainee.objects.get(id=trainee_id)
+        if trainee is None:  # new trainee.
+            trainee = Trainee.objects.create(id=trainee_id,
+                                             first_name=update.effective_user.first_name)
+
+        args_with_trainee = args + (trainee, )
+        return func(*args_with_trainee, **kwargs)
+
+    return wrapper
+
+
+def get_group(func):
+    def wrapper(*args, **kwargs):
+        bot, update = get_bot_and_update_from_args(args)
+        group_id = update.effective_user.id
+        group = Group.objects.get(id=group_id)
+        if group is None:  # new group.
+            group = Group.objects.create(id=group_id)
+
+        args_with_group = args + (group, )
+        return func(*args_with_group, **kwargs)
+
+    return wrapper
+
+
+def get_trainee_and_group(func):
+    @get_trainee
+    @get_group
+    def wrapper(*args, **kwargs):
+        trainee, group = args[-2:]
+        if trainee not in group.trainees:
+            group.add_trainee(new_trainee=trainee)
+
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 class GymBot(object):
@@ -52,50 +94,30 @@ class GymBot(object):
             trainees = group.get_trainees_in_day(day_name)
             if trainees:
                 day_name += ': ' + ', '.join(trainee.first_name
-                                            for trainee in trainees)
+                                             for trainee in trainees)
 
             keyboard.append([InlineKeyboardButton(day_name, callback_data='new_week {idx}'.format(idx=idx))])
 
         return InlineKeyboardMarkup(keyboard)
 
-    def select_day_command(self, bot, update):
+    @get_trainee_and_group
+    def select_day_command(self, bot, update, trainee, group):
         self.logger.info('select days command')
-        trainee_id = update.effective_user.id
-        group_id = update.message.chat_id
-
-        trainee = Trainee.objects.get(id=trainee_id)
         self.logger.info('trainee to select days %s', trainee)
-        group = Group.objects.get(id=group_id)
         self.logger.info('the group is %s', group)
-
-        if not group:
-            self.logger.info('the group does not exist in DB')
-            group = Group.objects.create(id=group_id)
-            self.logger.info('created group %s', group)
-
-        if trainee is None:  # new trainee.
-            self.logger.info('trainee does not exist in the DB')
-            trainee = Trainee.objects.create(id=trainee_id, first_name=update.effective_user.first_name)
-            self.logger.info('created trainee in DB %s', trainee)
-            group.add_trainee(new_trainee=trainee)
-            self.logger.info('added the trainee to group')
-
-        elif trainee not in group.trainees:  # trainee exists but new in the current group.
-            self.logger.info('trainee was not in the group')
-            group.add_trainee(new_trainee=trainee)
 
         keyboard = self._generate_inline_keyboard_for_select_days(trainee)
         update.message.reply_text('באיזה ימים אתה מתאמן יא בוט?', reply_markup=keyboard)
 
-    def select_day(self, bot, update):
+    @get_trainee
+    def select_day(self, bot, update, trainee):
         self.logger.info('select day')
         query = update.callback_query
 
-        trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('trainee selected %s', trainee)
         _, trainee_id, selected_day_index = query.data.split()
 
-        if trainee is None or trainee.id != unicode(trainee_id):
+        if trainee.id != unicode(trainee_id):
             self.logger.info('trainee is not allow to choose for others')
             bot.answerCallbackQuery(text='אי אפשר לבחור לאחרים יא בוט',
                                     callback_query_id=update.callback_query.id,
@@ -126,16 +148,23 @@ class GymBot(object):
             bot.answerCallbackQuery(text='יא בוט על חלל, כבר שינית את זה במקום אחר...',
                                     callback_query_id=update.callback_query.id)
 
-    def my_days_command(self, bot, update):
+    @get_trainee
+    def my_days_command(self, bot, update, trainee):
         self.logger.info('my days command')
-        trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('requested by trainee %s', trainee)
         text = ', '.join(day.name for day in trainee.training_days.filter(selected=True))
-        self.logger.info('trainee days %s', text)
-
-        bot.send_message(chat_id=update.message.chat_id,
-                         reply_to_message_id=update.message.message_id,
-                         text=text)
+        if text:
+            self.logger.info('trainee days %s', text)
+            bot.send_message(chat_id=update.message.chat_id,
+                             reply_to_message_id=update.message.message_id,
+                             text=text)
+        else:
+            self.logger.info('trainee does not have any training days')
+            text = 'לא בחרת ימים להתאמן יא בוט. קח תתפנק'
+            bot.send_message(chat_id=update.message.chat_id,
+                             reply_to_message_id=update.message.message_id,
+                             text=text,
+                             reply_markup=self._generate_inline_keyboard_for_select_days(trainee))
 
     def _groups_daily_timer(self, callback):
         self.logger.info('group daily reminder')
@@ -158,10 +187,10 @@ class GymBot(object):
     def new_week_select_days(self):
         self.logger.info('reminding to select days for new week')
         for group in Group.objects:
-            logger.info('new week remind for %s', group)
+            self.logger.info('new week remind for %s', group)
             for trainee in group.trainees:
                 trainee.unselect_all_days()
-            logger.info('unselected all days for the trainees in group')
+            self.logger.info('unselected all days for the trainees in group')
 
             keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
             self.updater.bot.send_message(chat_id=group.id,
@@ -171,18 +200,18 @@ class GymBot(object):
         threading.Timer(timedelta(weeks=1).total_seconds(),
                         self.new_week_select_days).start()
 
-    def new_week_selected_day(self, bot, update):
+    @get_trainee_and_group
+    def new_week_selected_day(self, bot, update, trainee, group):
         self.logger.info('new week selected day')
+        self.logger.info('trainee selected %s in group %s', trainee, group)
         query = update.callback_query
 
-        trainee = Trainee.objects.get(id=update.effective_user.id)
-        self.logger.info('trainee selected %s', trainee)
         _, selected_day_index = query.data.split()
         selected_day = trainee.training_days[int(selected_day_index)]
         selected_day.selected = not selected_day.selected
         trainee.save()
+        group.reload()
 
-        group = Group.objects.get(id=query.message.chat_id)
         keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
         try:
             bot.edit_message_reply_markup(chat_id=group.id,
@@ -247,16 +276,16 @@ class GymBot(object):
                                       reply_markup=InlineKeyboardMarkup(keyboard))
         self.logger.info('finished to remind to group %s', group)
 
-    def went_to_gym_answer(self, bot, update):
+    @get_trainee
+    def went_to_gym_answer(self, bot, update, trainee):
         self.logger.info('answer to went to gym question')
         query = update.callback_query
         _, allowed_trainees, answer = query.data.split()
         allowed_trainees = json.loads(allowed_trainees)
         self.logger.info('allowed to answer the question trainees %s', allowed_trainees)
-        trainee = Trainee.objects.get(id=update.effective_user.id)
         self.logger.info('the trainee that answered %s', trainee)
 
-        if trainee is None or trainee.id not in allowed_trainees:
+        if trainee.id not in allowed_trainees:
             self.logger.info('the trainee is not allowed to answer the question')
             bot.answerCallbackQuery(text='זה לא היום שלך להתאמן יא בוט',
                                     callback_query_id=update.callback_query.id)

@@ -1,5 +1,6 @@
 # encoding: utf-8
 from __future__ import unicode_literals
+import telegram
 import emoji
 
 WEIGHT_LIFTER_EMOJI = emoji.emojize(':person_lifting_weights:')
@@ -17,3 +18,13 @@ def upper_first_letter(name):
 def get_week_days():
     from gym_bot_app.db.models import Day
     return Day.get_week_days()
+
+
+def find_instance_in_args(obj, args):
+    return filter(lambda arg: isinstance(arg, obj), args)[0]
+
+
+def get_bot_and_update_from_args(args):
+    bot = find_instance_in_args(telegram.bot.Bot, args)
+    update = find_instance_in_args(telegram.update.Update, args)
+    return bot, update
