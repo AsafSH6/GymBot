@@ -178,7 +178,7 @@ class GymBot(object):
             self.logger.info('one user creating msg for individual')
             text = went_to_gym_individual.format(training=training_today_msg)
 
-        allowed_users = ','.join(unicode(user.id) for user in relevant_users)
+        allowed_users = ','.join(unicode(user.first_name) for user in relevant_users)
         keyboard = [[InlineKeyboardButton('כן',
                                           callback_data='went_to_gym [{allowed_users}] yes'.format(
                                                         allowed_users=allowed_users)),
@@ -195,12 +195,12 @@ class GymBot(object):
         self.logger.info('answer to went to gym question')
         query = update.callback_query
         _, allowed_users, answer = query.data.split()
-        allowed_users = [int(user_id) for user_id in json.loads(allowed_users)]
+        # allowed_users = [int(user_id) for user_id in json.loads(allowed_users)]
         self.logger.info('allowed to answer the question users %s', allowed_users)
         user = self.users.get(update.effective_user.id)
         self.logger.info('the user that answered %s', user)
 
-        if user is None or user.id not in allowed_users:
+        if user is None or user.first_name not in allowed_users:
             self.logger.info('the user is not allowed to answer the question')
             bot.answerCallbackQuery(text='זה לא היום שלך להתאמן יא בוט',
                                     callback_query_id=update.callback_query.id)
