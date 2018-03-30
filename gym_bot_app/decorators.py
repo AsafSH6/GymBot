@@ -20,8 +20,9 @@ def get_trainee(func):
 def get_group(func):
     def wrapper(*args, **kwargs):
         bot, update = get_bot_and_update_from_args(args)
-        group_id = update.effective_user.id
+        group_id = update.message.chat_id if update.message else update.callback_query.message.chat_id
         group = Group.objects.get(id=group_id)
+
         if group is None:  # new group.
             group = Group.objects.create(id=group_id)
 

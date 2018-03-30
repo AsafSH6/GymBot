@@ -18,7 +18,7 @@ from gym_bot_app import WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 
 class GymBot(object):
@@ -48,15 +48,16 @@ class GymBot(object):
     def _generate_inline_keyboard_for_new_week_select_days(self, group):
         self.logger.info('generation inline keyboard for new week select days for group %s', group)
         keyboard = []
-        for idx, day in enumerate(Day.get_week_days()):
-            day_name = day.name
+        for day in Day.get_week_days():
+            training_in_day = day.name
 
-            trainees = group.get_trainees_in_day(day_name)
+            trainees = group.get_trainees_in_day(day.name)
             if trainees:
-                day_name += ': ' + ', '.join(trainee.first_name
-                                             for trainee in trainees)
+                training_in_day += ': ' + ', '.join(trainee.first_name
+                                                    for trainee in trainees)
 
-            keyboard.append([InlineKeyboardButton(day_name, callback_data='new_week {idx}'.format(idx=idx))])
+            keyboard.append([InlineKeyboardButton(training_in_day,
+                                                  callback_data='new_week {day_name}'.format(day_name=day.name))])
 
         return InlineKeyboardMarkup(keyboard)
 
@@ -166,8 +167,9 @@ class GymBot(object):
         self.logger.info('trainee selected %s in group %s', trainee, group)
         query = update.callback_query
 
-        _, selected_day_index = query.data.split()
-        selected_day = trainee.training_days[int(selected_day_index)]
+        _, selected_day_name = query.data.split()
+        self.logger.info('selected day name is %s', selected_day_name)
+        selected_day = trainee.training_days.get(name=selected_day_name)
         selected_day.selected = not selected_day.selected
         trainee.save()
         group.reload()
