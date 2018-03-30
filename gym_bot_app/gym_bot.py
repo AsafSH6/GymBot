@@ -11,54 +11,14 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, erro
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
 from gym_bot_app.db.models import Group, Trainee, Day
-from utils import get_bot_and_update_from_args, upper_first_letter, WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
+from gym_bot_app.decorators import get_trainee, get_trainee_and_group
+from gym_bot_app.utils import upper_first_letter
+from gym_bot_app import WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
-
-
-def get_trainee(func):
-    def wrapper(*args, **kwargs):
-        bot, update = get_bot_and_update_from_args(args)
-        trainee_id = update.effective_user.id
-        trainee = Trainee.objects.get(id=trainee_id)
-        if trainee is None:  # new trainee.
-            trainee = Trainee.objects.create(id=trainee_id,
-                                             first_name=update.effective_user.first_name)
-
-        args_with_trainee = args + (trainee, )
-        return func(*args_with_trainee, **kwargs)
-
-    return wrapper
-
-
-def get_group(func):
-    def wrapper(*args, **kwargs):
-        bot, update = get_bot_and_update_from_args(args)
-        group_id = update.effective_user.id
-        group = Group.objects.get(id=group_id)
-        if group is None:  # new group.
-            group = Group.objects.create(id=group_id)
-
-        args_with_group = args + (group, )
-        return func(*args_with_group, **kwargs)
-
-    return wrapper
-
-
-def get_trainee_and_group(func):
-    @get_trainee
-    @get_group
-    def wrapper(*args, **kwargs):
-        trainee, group = args[-2:]
-        if trainee not in group.trainees:
-            group.add_trainee(new_trainee=trainee)
-
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 class GymBot(object):

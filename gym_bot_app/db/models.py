@@ -1,16 +1,27 @@
 # encoding: utf-8
 from __future__ import unicode_literals
-from gym_bot_app.utils import (DAYS_NAME,
-                               upper_first_letter)
-from gym_bot_app.db.query_sets import (TraineeQuerySet,
-                                       GroupQuerySet)
+from gym_bot_app import DAYS_NAME
+from gym_bot_app.utils import day_name_to_day_idx
+
 from mongoengine import (Document,
                          ListField,
                          StringField,
                          BooleanField,
                          EmbeddedDocument,
                          EmbeddedDocumentListField,
-                         CachedReferenceField)
+                         CachedReferenceField,
+                         QuerySet,
+                         DoesNotExist)
+
+
+class ExtendedQuerySet(QuerySet):
+    def get(self, *q_objs, **query):
+        try:
+            if 'id' in query:
+                query['id'] = unicode(query['id'])
+            return super(ExtendedQuerySet, self).get(*q_objs, **query)
+        except DoesNotExist:
+            return None
 
 
 class Day(EmbeddedDocument):
@@ -38,6 +49,14 @@ class Trainee(Document):
     first_name = StringField(required=True)
     training_days = EmbeddedDocumentListField(Day)
 
+    class TraineeQuerySet(ExtendedQuerySet):
+        def create(self, id, first_name):
+            training_days = Day.get_week_days()
+
+            return super(TraineeQuerySet, self).create(id=unicode(id),
+                                                       first_name=unicode(first_name),
+                                                       training_days=training_days)
+
     meta = {'queryset_class': TraineeQuerySet}
 
     def unselect_all_days(self):
@@ -61,6 +80,11 @@ class Group(Document):
     id = StringField(required=True, primary_key=True)
     trainees = ListField(CachedReferenceField(Trainee, auto_sync=True))
 
+    class GroupQuerySet(ExtendedQuerySet):
+        def create(self, id, trainees=[]):
+            return super(GroupQuerySet, self).create(id=unicode(id),
+                                                     trainees=trainees)
+
     meta = {'queryset_class': GroupQuerySet}
 
     @classmethod
@@ -75,7 +99,7 @@ class Group(Document):
         return self.save()
 
     def get_trainees_in_day(self, day_name):
-        day_idx = DAYS_NAME.index(upper_first_letter(day_name))
+        day_idx = day_name_to_day_idx(day_name)
         return [trainee for trainee in self.trainees if trainee.training_days[day_idx].selected]
 
     def __repr__(self):
