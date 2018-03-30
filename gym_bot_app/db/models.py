@@ -1,8 +1,7 @@
 # encoding: utf-8
 from __future__ import unicode_literals
+from datetime import datetime
 from gym_bot_app import DAYS_NAME
-from gym_bot_app.utils import day_name_to_day_idx
-
 from mongoengine import (Document,
                          ListField,
                          StringField,
@@ -65,6 +64,13 @@ class Trainee(Document):
 
         self.save()
 
+    def is_training_today(self):
+        today = datetime.now().strftime('%A')
+        return self.is_training_in_day(day_name=today)
+
+    def is_training_in_day(self, day_name):
+        return self.training_days.get(name=day_name).selected
+
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,
                                                     first_name=self.first_name)
@@ -99,8 +105,7 @@ class Group(Document):
         return self.save()
 
     def get_trainees_in_day(self, day_name):
-        day_idx = day_name_to_day_idx(day_name)
-        return [trainee for trainee in self.trainees if trainee.training_days[day_idx].selected]
+        return [trainee for trainee in self.trainees if trainee.is_training_in_day(day_name)]
 
     def __repr__(self):
         return '<Group {id} [{trainees}]>'.format(id=self.id,
@@ -111,3 +116,6 @@ class Group(Document):
 
     def __unicode__(self):
         return repr(self)
+
+    def __iter__(self):
+        return self.trainees.objects

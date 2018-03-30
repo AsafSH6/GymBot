@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import os
-import json
 import logging
 import threading
 from datetime import datetime, time, timedelta
@@ -35,13 +34,15 @@ class GymBot(object):
         self.logger.info('generation inline keyboard for select days for trainee %s', trainee)
 
         keyboard = []
-        for idx, day in enumerate(trainee.training_days):
-            day_name = day.name
+        for day in trainee.training_days:
+            training_day = day.name
             if day.selected:
-                day_name += ' ' + WEIGHT_LIFTER_EMOJI
+                training_day += ' ' + WEIGHT_LIFTER_EMOJI
 
-            keyboard.append([InlineKeyboardButton(day_name, callback_data='select_days {id} {idx}'.format(id=trainee.id,
-                                                                                                          idx=idx))])
+            keyboard.append([InlineKeyboardButton(training_day,
+                                                  callback_data='select_days {id} {day_name}'.format(id=trainee.id,
+                                                                                                     day_name=day.name))
+                             ])
 
         return InlineKeyboardMarkup(keyboard)
 
@@ -73,10 +74,10 @@ class GymBot(object):
     @get_trainee
     def select_day(self, bot, update, trainee):
         self.logger.info('select day')
-        query = update.callback_query
-
         self.logger.info('trainee selected %s', trainee)
-        _, trainee_id, selected_day_index = query.data.split()
+
+        query = update.callback_query
+        _, trainee_id, selected_day = query.data.split()
 
         if trainee.id != unicode(trainee_id):
             self.logger.info('trainee is not allow to choose for others')
@@ -85,8 +86,8 @@ class GymBot(object):
                                     parse_mode=ParseMode.HTML)
             return
 
-        logger.info('selected day index %s', selected_day_index)
-        selected_day = trainee.training_days[int(selected_day_index)]
+        logger.info('selected day %s', selected_day)
+        selected_day = trainee.training_days.get(name=selected_day)
         self.logger.info('selected day %s', selected_day)
         if selected_day.selected:
             self.logger.info('already selected day, removing it from the trainee training days')
@@ -132,7 +133,7 @@ class GymBot(object):
         self.logger.info('callback method: %s', callback.func_name)
         for group in Group.objects.all():
             self.logger.info('checking group %s', group)
-            today_name = upper_first_letter(datetime.now().strftime('%A'))
+            today_name = datetime.now().strftime('%A')
             self.logger.info('the day is %s', today_name)
 
             relevant_trainees = group.get_trainees_in_day(today_name)
@@ -225,13 +226,11 @@ class GymBot(object):
             self.logger.info('one trainee creating msg for individual')
             text = went_to_gym_individual.format(training=training_today_msg)
 
-        allowed_trainees = ','.join(unicode(trainee.id) for trainee in relevant_trainees)
+        today_name = datetime.now().strftime('%A')
         keyboard = [[InlineKeyboardButton('כן',
-                                          callback_data='went_to_gym [{allowed_trainees}] yes'.format(
-                                              allowed_trainees=allowed_trainees)),
+                                          callback_data='went_to_gym yes {today}'.format(today=today_name)),
                      InlineKeyboardButton('אני אפס',
-                                          callback_data='went_to_gym [{allowed_trainees}] no'.format(
-                                              allowed_trainees=allowed_trainees))]]
+                                          callback_data='went_to_gym no {today}'.format(today=today_name))]]
 
         self.updater.bot.send_message(chat_id=group.id,
                                       text=text,
@@ -242,12 +241,11 @@ class GymBot(object):
     def went_to_gym_answer(self, bot, update, trainee):
         self.logger.info('answer to went to gym question')
         query = update.callback_query
-        _, allowed_trainees, answer = query.data.split()
-        allowed_trainees = json.loads(allowed_trainees)
-        self.logger.info('allowed to answer the question trainees %s', allowed_trainees)
+        _, answer, day_name = query.data.split()
         self.logger.info('the trainee that answered %s', trainee)
+        self.logger.info('the day is %s', day_name)
 
-        if trainee.id not in allowed_trainees:
+        if trainee.is_training_in_day(day_name) is False:
             self.logger.info('the trainee is not allowed to answer the question')
             bot.answerCallbackQuery(text='זה לא היום שלך להתאמן יא בוט',
                                     callback_query_id=update.callback_query.id)
