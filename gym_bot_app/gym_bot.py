@@ -10,7 +10,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, erro
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
 from gym_bot_app.db.models import Group, Trainee, Day
-from gym_bot_app.decorators import get_trainee, get_trainee_and_group
+from gym_bot_app.decorators import get_trainee, get_group, get_trainee_and_group
 from gym_bot_app.utils import upper_first_letter
 from gym_bot_app import WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
@@ -127,6 +127,21 @@ class GymBot(object):
                              reply_to_message_id=update.message.message_id,
                              text=text,
                              reply_markup=self._generate_inline_keyboard_for_select_days(trainee))
+
+    @get_group
+    def all_the_bots_command(self, bot, update, group):
+        for day in Day.get_week_days():
+            trainees_in_day = group.get_trainees_in_day(day.name)
+
+            if trainees_in_day:
+                trainees_names = ', '.join(trainee.first_name for trainee in trainees_in_day)
+            else:
+                trainees_names = 'None'
+                
+            text = '{day_name}: {trainees}'.format(day_name=day.name,
+                                                   trainees=trainees_names)
+            bot.send_message(chat_id=update.message.chat_id,
+                             text=text)
 
     def _groups_daily_timer(self, callback):
         self.logger.info('group daily reminder')
@@ -331,6 +346,7 @@ class GymBot(object):
         handlers = (
             CommandHandler('select_days', self.select_day_command),  # select days
             CommandHandler('mydays', self.my_days_command),  # mydays
+            CommandHandler('all_the_botim', self.all_the_bots_command),  # mydays
             MessageHandler(filters=Filters.status_update.new_chat_members, callback=self.new_group),  # new chat
             CallbackQueryHandler(pattern='select_days.*', callback=self.select_day),  # selected training day
             CallbackQueryHandler(pattern='went_to_gym.*', callback=self.went_to_gym_answer),  # went to gym answer
