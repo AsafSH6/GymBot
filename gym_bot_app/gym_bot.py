@@ -9,7 +9,7 @@ from datetime import datetime, time, timedelta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, error
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters, MessageHandler
 
-from gym_bot_app.db.models import Group, Trainee, Day
+from gym_bot_app.models import Group, Day
 from gym_bot_app.decorators import get_trainee, get_group, get_trainee_and_group
 from gym_bot_app.utils import upper_first_letter
 from gym_bot_app import WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI

@@ -1,4 +1,4 @@
-from gym_bot_app.db.models import Group, Trainee, Day
+from gym_bot_app.models import Group, Trainee
 from gym_bot_app.utils import get_bot_and_update_from_args
 
 
