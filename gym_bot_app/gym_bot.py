@@ -23,7 +23,7 @@ logging.basicConfig(filename='logs/gymbot.log',
 class GymBot(object):
     REMINDER_TIME = time(hour=9, minute=0, second=0)
     CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
-    NEW_WEEK_SELECT_DAYS = time(hour=21, minute=30, second=0)  # TODO: change to datetime and select saturday.
+    NEW_WEEK_SELECT_DAYS = time(hour=21, minute=45, second=0)  # TODO: change to datetime and select saturday.
 
     def __init__(self, updater, dispatcher, logger):
         self.updater = updater
