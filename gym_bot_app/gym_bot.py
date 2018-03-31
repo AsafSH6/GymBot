@@ -267,13 +267,13 @@ class GymBot(object):
             return
 
         if answer == 'yes':
-            self.logger.info('%s %s', trainee.first_name, 'answered yes')
+            self.logger.info('%s answered yes', trainee.first_name)
             bot.send_message(chat_id=query.message.chat_id,
                              text='כל הכבוד {trainee} אלוף!'.format(trainee=trainee.first_name))
             bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,
                                     callback_query_id=update.callback_query.id)
         else:
-            self.logger.info('%s %s', trainee.first_name, 'answered no')
+            self.logger.info('%s answered no', trainee.first_name)
             bot.send_message(chat_id=query.message.chat_id,
                              text='אפס מאופס {trainee}'.format(trainee=trainee.first_name))
             bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
@@ -300,21 +300,21 @@ class GymBot(object):
         ]
 
         for reminder in reminders:
-            logger.info('preparing remind of %s with args: %s',
-                        reminder['method'].func_name,
-                        reminder['args'])
+            self.logger.info('preparing remind of %s with args: %s',
+                              reminder['method'].func_name,
+                              reminder['args'])
             now = datetime.today()
             reminder_time = reminder['time']
-            logger.info('requested reminder time is %s', reminder_time)
+            self.logger.info('requested reminder time is %s', reminder_time)
             desired_datetime = now.replace(hour=reminder_time.hour,
                                            minute=reminder_time.minute,
                                            second=reminder_time.second)
             if now > desired_datetime:  # time already passed- move to the next day.
-                logger.info('the time already passed, setting reminder for tomorrow')
+                self.logger.info('the time already passed, setting reminder for tomorrow')
                 desired_datetime += timedelta(days=1)
             else:
-                logger.info('the time did not pass, setting reminder for today')
-            logger.info('requested reminder datetime is %s', desired_datetime)
+                self.logger.info('the time did not pass, setting reminder for today')
+            self.logger.info('requested reminder datetime is %s', desired_datetime)
 
             seconds_to_wait = (desired_datetime - now).total_seconds()
 
