@@ -52,9 +52,9 @@ class Trainee(Document):
         def create(self, id, first_name):
             training_days = Day.get_week_days()
 
-            return super(TraineeQuerySet, self).create(id=unicode(id),
-                                                       first_name=unicode(first_name),
-                                                       training_days=training_days)
+            return super(Trainee.TraineeQuerySet, self).create(id=unicode(id),
+                                                               first_name=unicode(first_name),
+                                                               training_days=training_days)
 
     meta = {'queryset_class': TraineeQuerySet}
 
@@ -88,21 +88,14 @@ class Group(Document):
 
     class GroupQuerySet(ExtendedQuerySet):
         def create(self, id, trainees=[]):
-            return super(GroupQuerySet, self).create(id=unicode(id),
-                                                     trainees=trainees)
+            return super(Group.GroupQuerySet, self).create(id=unicode(id),
+                                                           trainees=trainees)
 
     meta = {'queryset_class': GroupQuerySet}
 
-    @classmethod
-    def create(cls, group_id, trainees=[]):
-        new_group = cls(id=unicode(group_id))
-        new_group.trainees.extend(trainees)
-
-        return new_group.save()
-
     def add_trainee(self, new_trainee):
-        self.trainees.append(new_trainee)
-        return self.save()
+        self.update(push__trainees=new_trainee)
+        return self
 
     def get_trainees_in_day(self, day_name):
         return [trainee for trainee in self.trainees if trainee.is_training_in_day(day_name)]
@@ -118,4 +111,4 @@ class Group(Document):
         return repr(self)
 
     def __iter__(self):
-        return self.trainees.objects
+        return iter(self.trainees)
