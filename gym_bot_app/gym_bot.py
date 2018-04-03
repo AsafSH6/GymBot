@@ -165,19 +165,24 @@ class GymBot(object):
 
     def new_week_select_days(self):
         self.logger.info('reminding to select days for new week')
-        for group in Group.objects:
-            self.logger.info('new week remind for %s', group)
-            for trainee in group.trainees:
-                trainee.unselect_all_days()
-            self.logger.info('unselected all days for the trainees in group')
+        if datetime.now().strftime('%A') == 'Saturday':
+            self.logger.info('day is saturday, starting to remind new week select days')
+            for group in Group.objects:
+                self.logger.info('new week remind for %s', group)
+                for trainee in group.trainees:
+                    trainee.unselect_all_days()
+                self.logger.info('unselected all days for the trainees in group')
 
-            keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
-            self.updater.bot.send_message(chat_id=group.id,
-                                          text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
-                                          reply_markup=keyboard)
+                keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
+                self.updater.bot.send_message(chat_id=group.id,
+                                              text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
+                                              reply_markup=keyboard)
+        else:
+            self.logger.info('day is not saturday, skipping new week select days')
 
-        threading.Timer(timedelta(weeks=1).total_seconds(),
+        threading.Timer(timedelta(hours=23, minutes=59, seconds=59).total_seconds(),
                         self.new_week_select_days).start()
+        self.logger.info('set new_week_select_days timer for tomorrow')
 
     @get_trainee_and_group
     def new_week_selected_day(self, bot, update, trainee, group):
