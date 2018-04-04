@@ -97,6 +97,10 @@ class Group(Document):
         self.update(push__trainees=new_trainee)
         return self
 
+    def get_trainees_of_today(self):
+        today = datetime.now().strftime('%A')
+        return self.get_trainees_in_day(today)
+
     def get_trainees_in_day(self, day_name):
         return [trainee for trainee in self.trainees if trainee.is_training_in_day(day_name)]
 
