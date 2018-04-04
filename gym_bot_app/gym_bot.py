@@ -23,7 +23,7 @@ logging.basicConfig(filename='logs/gymbot.log',
 class GymBot(object):
     REMINDER_TIME = time(hour=9, minute=0, second=0)
     CHECK_WHETHER_DONE_TIME = time(hour=21, minute=0, second=0)
-    NEW_WEEK_SELECT_DAYS = time(hour=21, minute=30, second=0)  # TODO: change to datetime and select saturday.
+    NEW_WEEK_SELECT_DAYS = time(hour=21, minute=45, second=0)  # TODO: change to datetime and select saturday.
 
     def __init__(self, updater, dispatcher, logger):
         self.updater = updater
@@ -36,13 +36,12 @@ class GymBot(object):
         keyboard = []
         for day in trainee.training_days:
             training_day = day.name
+
             if day.selected:
                 training_day += ' ' + WEIGHT_LIFTER_EMOJI
 
-            keyboard.append([InlineKeyboardButton(training_day,
-                                                  callback_data='select_days {id} {day_name}'.format(id=trainee.id,
-                                                                                                     day_name=day.name))
-                             ])
+            callback_data = 'select_days {id} {day_name}'.format(id=trainee.id, day_name=day.name)
+            keyboard.append([InlineKeyboardButton(training_day, callback_data=callback_data)])
 
         return InlineKeyboardMarkup(keyboard)
 
@@ -57,8 +56,8 @@ class GymBot(object):
                 training_in_day += ': ' + ', '.join(trainee.first_name
                                                     for trainee in trainees)
 
-            keyboard.append([InlineKeyboardButton(training_in_day,
-                                                  callback_data='new_week {day_name}'.format(day_name=day.name))])
+            callback_data = 'new_week {day_name}'.format(day_name=day.name)
+            keyboard.append([InlineKeyboardButton(training_in_day, callback_data=callback_data)])
 
         return InlineKeyboardMarkup(keyboard)
 
@@ -93,11 +92,9 @@ class GymBot(object):
             self.logger.info('already selected day, removing it from the trainee training days')
         else:
             self.logger.info('new selected day, adding it to the trainee training days')
-
         selected_day.selected = not selected_day.selected
-        trainee.save()
-
         updated_keyboard = self._generate_inline_keyboard_for_select_days(trainee)
+
         try:
             bot.edit_message_reply_markup(chat_id=query.message.chat_id,
                                           message_id=query.message.message_id,
@@ -110,26 +107,29 @@ class GymBot(object):
             bot.answerCallbackQuery(text='יא בוט על חלל, כבר שינית את זה במקום אחר...',
                                     callback_query_id=update.callback_query.id)
 
+        trainee.save()
+
     @get_trainee
     def my_days_command(self, bot, update, trainee):
         self.logger.info('my days command')
         self.logger.info('requested by trainee %s', trainee)
-        text = ', '.join(day.name for day in trainee.training_days.filter(selected=True))
-        if text:
-            self.logger.info('trainee days %s', text)
+        training_days = ', '.join(day.name for day in trainee.training_days.filter(selected=True))
+        if training_days:
+            self.logger.info('trainee days %s', training_days)
             bot.send_message(chat_id=update.message.chat_id,
                              reply_to_message_id=update.message.message_id,
-                             text=text)
+                             text=training_days)
         else:
             self.logger.info('trainee does not have any training days')
-            text = 'לא בחרת ימים להתאמן יא בוט. קח תתפנק'
+            training_days = 'לא בחרת ימים להתאמן יא בוט. קח תתפנק'
             bot.send_message(chat_id=update.message.chat_id,
                              reply_to_message_id=update.message.message_id,
-                             text=text,
+                             text=training_days,
                              reply_markup=self._generate_inline_keyboard_for_select_days(trainee))
 
     @get_group
     def all_the_bots_command(self, bot, update, group):
+        days_and_trainees = []
         for day in Day.get_week_days():
             trainees_in_day = group.get_trainees_in_day(day.name)
 
@@ -137,11 +137,13 @@ class GymBot(object):
                 trainees_names = ', '.join(trainee.first_name for trainee in trainees_in_day)
             else:
                 trainees_names = 'None'
-                
+
             text = '{day_name}: {trainees}'.format(day_name=day.name,
                                                    trainees=trainees_names)
-            bot.send_message(chat_id=update.message.chat_id,
-                             text=text)
+            days_and_trainees.append(text)
+
+        bot.send_message(chat_id=update.message.chat_id,
+                         text='\n'.join(days_and_trainees))
 
     def _groups_daily_timer(self, callback):
         self.logger.info('group daily reminder')
@@ -163,19 +165,24 @@ class GymBot(object):
 
     def new_week_select_days(self):
         self.logger.info('reminding to select days for new week')
-        for group in Group.objects:
-            self.logger.info('new week remind for %s', group)
-            for trainee in group.trainees:
-                trainee.unselect_all_days()
-            self.logger.info('unselected all days for the trainees in group')
+        if datetime.now().strftime('%A') == 'Saturday':
+            self.logger.info('day is saturday, starting to remind new week select days')
+            for group in Group.objects:
+                self.logger.info('new week remind for %s', group)
+                for trainee in group.trainees:
+                    trainee.unselect_all_days()
+                self.logger.info('unselected all days for the trainees in group')
 
-            keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
-            self.updater.bot.send_message(chat_id=group.id,
-                                          text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
-                                          reply_markup=keyboard)
+                keyboard = self._generate_inline_keyboard_for_new_week_select_days(group)
+                self.updater.bot.send_message(chat_id=group.id,
+                                              text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
+                                              reply_markup=keyboard)
+        else:
+            self.logger.info('day is not saturday, skipping new week select days')
 
-        threading.Timer(timedelta(weeks=1).total_seconds(),
+        threading.Timer(timedelta(hours=23, minutes=59, seconds=59).total_seconds(),
                         self.new_week_select_days).start()
+        self.logger.info('set new_week_select_days timer for tomorrow')
 
     @get_trainee_and_group
     def new_week_selected_day(self, bot, update, trainee, group):
@@ -205,13 +212,15 @@ class GymBot(object):
 
     def go_to_gym(self, group, relevant_trainees):
         self.logger.info('reminding to go to the gym')
+        self.logger.info('relevant trainees %s', relevant_trainees)
         if not relevant_trainees:
             self.logger.info('there are no relevant trainees')
             return
+
         go_to_gym_plural = 'לכו היום לחדר כושר יא בוטים {training}'
         go_to_gym_individual = 'לך היום לחדר כושר יא בוט {training}'
 
-        training_today_msg = ' '.join('@' + trainee.first_name for trainee in relevant_trainees)
+        training_today_msg = ' '.join(trainee.first_name for trainee in relevant_trainees)
 
         if len(relevant_trainees) > 1:
             self.logger.info('more than one trainee therefore creating plural msg')
@@ -232,7 +241,8 @@ class GymBot(object):
 
         went_to_gym_plural = 'הלכתם היום לחדכ יא בוטים? {training}'
         went_to_gym_individual = 'הלכת היום לחדכ יא בוט? {training}'
-        training_today_msg = ' '.join('@' + trainee.first_name for trainee in relevant_trainees)
+
+        training_today_msg = ' '.join(trainee.first_name for trainee in relevant_trainees)
 
         if len(relevant_trainees) > 1:
             self.logger.info('more than one trainee therefore creating plural msg')
@@ -359,10 +369,12 @@ class GymBot(object):
         self.set_reminders()
         self.logger.info('starting to poll')
         self.updater.start_polling()
+        self.updater.idle()
 
 
 if __name__ == '__main__':
     import sys
+
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         os.environ['BOT_TOKEN'] = os.environ['BOT_TOKEN_TEST']
         os.environ['MONGODB_URL_CON'] = os.environ['MONGODB_URL_CON_TEST']
