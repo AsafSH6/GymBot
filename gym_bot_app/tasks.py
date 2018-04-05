@@ -39,7 +39,7 @@ def repeats(every_seconds):
 
 class Task(object):
     def __init__(self, dispatcher, updater, logger):
-        self.dispatcer = dispatcher
+        self.dispatcher = dispatcher
         self.updater = updater
         self.logger = logger
 
@@ -118,8 +118,8 @@ class GoToGymTask(Task):
 class NewWeekSelectDaysTask(Task):
     def __init__(self, *args, **kwargs):
         super(NewWeekSelectDaysTask, self).__init__(*args, **kwargs)
-        self.dispatcer.add_handler(CallbackQueryHandler(pattern='new_week.*',
-                                                        callback=self.new_week_selected_day_callback_query))
+        self.dispatcher.add_handler(CallbackQueryHandler(pattern='new_week.*',
+                                                         callback=self.new_week_selected_day_callback_query))
 
     def get_start_time(self):
         pass
