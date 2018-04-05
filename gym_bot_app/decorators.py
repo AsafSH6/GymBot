@@ -12,6 +12,7 @@ def get_trainee(func):
         bot, update = get_bot_and_update_from_args(args)
         trainee_id = update.effective_user.id
         trainee = Trainee.objects.get(id=trainee_id)
+
         if trainee is None:  # new trainee.
             trainee = Trainee.objects.create(id=trainee_id,
                                              first_name=update.effective_user.first_name)
@@ -42,6 +43,7 @@ def get_trainee_and_group(func):
     @get_group
     def wrapper(*args, **kwargs):
         trainee, group = args[-2:]
+
         if trainee not in group.trainees:
             group.add_trainee(new_trainee=trainee)
 

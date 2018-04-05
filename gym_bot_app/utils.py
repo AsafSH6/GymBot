@@ -1,5 +1,6 @@
 # encoding: utf-8
 from __future__ import unicode_literals
+from datetime import datetime
 
 import telegram
 
@@ -12,6 +13,11 @@ def upper_first_letter(name):
 
 def day_name_to_day_idx(day_name):
     return DAYS_NAME.index(upper_first_letter(day_name))
+
+
+def number_of_days_until_next_day(target_day_name):
+    today = datetime.today().strftime('%A')
+    return (DAYS_NAME.index(target_day_name) - DAYS_NAME.index(today)) % len(DAYS_NAME)
 
 
 def find_instance_in_args(obj, args):
