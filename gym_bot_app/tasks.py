@@ -4,37 +4,20 @@ from __future__ import unicode_literals
 import os
 import logging
 import threading
+from datetime import datetime, time, timedelta
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, error
 from telegram.ext import Updater, CallbackQueryHandler
 
-from gym_bot_app.decorators import get_trainee_and_group
-from gym_bot_app.models import Trainee, Group, Day
-from datetime import datetime, time, timedelta
-
 from gym_bot_app.utils import upper_first_letter
+from gym_bot_app.models import Trainee, Group, Day
+from gym_bot_app.decorators import get_trainee_and_group, repeats
+
 
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
-
-
-def repeats(every_seconds):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            threading.Timer(every_seconds,
-                            wrapper,
-                            args=args,
-                            kwargs=kwargs).start()
-            logger.info('scheduled function %s with args %s and kwargs %s in %s seconds',
-                        func.func_name,
-                        args,
-                        kwargs,
-                        every_seconds)
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
 
 
 class Task(object):

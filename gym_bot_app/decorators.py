@@ -1,6 +1,8 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
+import threading
+
 from gym_bot_app.models import Group, Trainee
 from gym_bot_app.utils import get_bot_and_update_from_args
 
@@ -46,3 +48,15 @@ def get_trainee_and_group(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def repeats(every_seconds):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            threading.Timer(every_seconds,
+                            wrapper,
+                            args=args,
+                            kwargs=kwargs).start()
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
