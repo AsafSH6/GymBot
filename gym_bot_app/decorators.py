@@ -62,3 +62,12 @@ def repeats(every_seconds):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def run_for_all_groups(func):
+    def wrapper(*args, **kwargs):
+        for group in Group.objects:
+            args_with_group = args + (group, )
+            func(*args_with_group, **kwargs)
+
+    return wrapper

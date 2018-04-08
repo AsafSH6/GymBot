@@ -12,6 +12,8 @@ from gym_bot_app.tasks import (GoToGymTask,
                                )
 
 
+MSG_TIMEOUT = 20
+
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -26,7 +28,7 @@ def run_gym_bot(token, logger):
     WentToGymTask(dispatcher, updater, logger).start()
     NewWeekSelectDaysTask(dispatcher, updater, logger).start()
 
-    updater.start_polling()
+    updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()
 
 

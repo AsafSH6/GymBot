@@ -7,12 +7,8 @@ import telegram
 from gym_bot_app import DAYS_NAME
 
 
-def upper_first_letter(name):
-    return name[0].upper() + name[1:].lower()
-
-
 def day_name_to_day_idx(day_name):
-    return DAYS_NAME.index(upper_first_letter(day_name))
+    return DAYS_NAME.index(day_name.capitalize())
 
 
 def number_of_days_until_next_day(target_day_name):

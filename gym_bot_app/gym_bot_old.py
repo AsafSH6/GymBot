@@ -11,7 +11,6 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Filters,
 
 from gym_bot_app.models import Group, Day
 from gym_bot_app.decorators import get_trainee, get_group, get_trainee_and_group
-from gym_bot_app.utils import upper_first_letter
 from gym_bot_app import WEIGHT_LIFTER_EMOJI, THUMBS_DOWN_EMOJI, THUMBS_UP_EMOJI
 
 logging.basicConfig(filename='logs/gymbot.log',
@@ -99,7 +98,7 @@ class GymBot(object):
             bot.edit_message_reply_markup(chat_id=query.message.chat_id,
                                           message_id=query.message.message_id,
                                           reply_markup=updated_keyboard)
-            bot.answerCallbackQuery(text='selected {}'.format(upper_first_letter(selected_day.name)),
+            bot.answerCallbackQuery(text='selected {}'.format(selected_day.name.capitalize()),
                                     callback_query_id=update.callback_query.id)
         except error.BadRequest:
             self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
@@ -202,7 +201,7 @@ class GymBot(object):
             bot.edit_message_reply_markup(chat_id=group.id,
                                           message_id=query.message.message_id,
                                           reply_markup=keyboard)
-            bot.answerCallbackQuery(text="selected {}".format(upper_first_letter(selected_day.name)),
+            bot.answerCallbackQuery(text="selected {}".format(selected_day.name.capitalize()),
                                     callback_query_id=update.callback_query.id)
         except error.BadRequest:
             self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
