@@ -6,6 +6,9 @@ import os
 
 from telegram.ext import Updater
 
+from gym_bot_app.commands.all_the_bots import AllTheBotsCommand
+from gym_bot_app.commands.my_days import MyDaysCommand
+from gym_bot_app.commands.select_days import SelectDaysCommand
 from gym_bot_app.tasks import (GoToGymTask,
                                NewWeekSelectDaysTask,
                                WentToGymTask,
@@ -24,9 +27,12 @@ def run_gym_bot(token, logger):
     updater = Updater(token=token)
     dispatcher = updater.dispatcher
 
-    GoToGymTask(dispatcher, updater, logger).start()
-    WentToGymTask(dispatcher, updater, logger).start()
-    NewWeekSelectDaysTask(dispatcher, updater, logger).start()
+    GoToGymTask(dispatcher=dispatcher, updater=updater, logger=logger).start()
+    WentToGymTask(dispatcher=dispatcher, updater=updater, logger=logger).start()
+    NewWeekSelectDaysTask(dispatcher=dispatcher, updater=updater, logger=logger).start()
+    SelectDaysCommand(dispatcher=dispatcher, updater=updater, logger=logger).start()
+    MyDaysCommand(dispatcher=dispatcher, updater=updater, logger=logger).start()
+    AllTheBotsCommand(dispatcher=dispatcher, updater=updater, logger=logger).start(name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()

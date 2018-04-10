@@ -18,27 +18,33 @@ class NewWeekSelectDaysTask(Task):
 
     NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER = 'new_week'
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, target_day=None, target_time=None, *args, **kwargs):
         super(NewWeekSelectDaysTask, self).__init__(*args, **kwargs)
+        self.target_day = target_day or self.TARGET_DAY
+        self.target_time = target_time or self.TARGET_TIME
+
         self.dispatcher.add_handler(
             CallbackQueryHandler(pattern='{identifier}.*'.format(identifier=self.NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER),
                                  callback=self.new_week_selected_day_callback_query)
         )
 
     def get_start_time(self):
-        return self._seconds_until_day_and_time(target_day_name=self.TARGET_DAY,
-                                                target_time=self.TARGET_TIME)
+        return self._seconds_until_day_and_time(target_day_name=self.target_day,
+                                                target_time=self.target_time)
 
     @repeats(every_seconds=timedelta(weeks=1).total_seconds())
     @run_for_all_groups
-    def execute(self, group):
+    def _execute(self, group):
         self.logger.info('new week remind for %s', group)
         for trainee in group.trainees:
             trainee.unselect_all_days()
         self.logger.info('unselected all days for the trainees in group')
 
         self.logger.info('generation inline keyboard for new week select days for group %s', group)
-        keyboard = all_group_participants_select_days_inline_keyboard(group=group)
+        keyboard = all_group_participants_select_days_inline_keyboard(
+            group=group,
+            callback_identifier=self.NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER
+        )
         try:
             self.updater.bot.send_message(chat_id=group.id,
                                           text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',

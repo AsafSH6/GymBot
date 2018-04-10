@@ -13,22 +13,27 @@ from gym_bot_app.decorators import repeats, get_trainee, run_for_all_groups
 
 
 class WentToGymTask(Task):
-    TARGET_TIME = time(hour=0, minute=0, second=0, microsecond=0)
+    TARGET_TIME = time(hour=21, minute=0, second=0, microsecond=0)
     WENT_TO_GYM_QUERY_IDENTIFIER = 'went_to_gym'
 
-    def __init__(self, *args, **kwargs):
+    WENT_TO_GYM_PLURAL = 'הלכתם היום לחדכ יא בוטים? {training}'
+    WENT_TO_GYM_INDIVIDUAL = 'הלכת היום לחדכ יא בוט? {training}'
+
+    def __init__(self, target_time=None, *args, **kwargs):
         super(WentToGymTask, self).__init__(*args, **kwargs)
+        self.target_time = target_time or self.TARGET_TIME
+
         self.dispatcher.add_handler(
             CallbackQueryHandler(pattern='{identifier}.*'.format(identifier=self.WENT_TO_GYM_QUERY_IDENTIFIER),
                                  callback=self.went_to_gym_callback_query)
         )
 
     def get_start_time(self):
-        return self._seconds_until_time(target_time=self.TARGET_TIME)
+        return self._seconds_until_time(target_time=self.target_time)
 
-    @repeats(every_seconds=timedelta(minutes=1).total_seconds())
+    @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
-    def execute(self, group):
+    def _execute(self, group):
         self.logger.info('checking group %s', group)
         relevant_trainees = group.get_trainees_of_today()
         self.logger.info('relevant trainees %s', relevant_trainees)
@@ -37,22 +42,11 @@ class WentToGymTask(Task):
             self.logger.info('there are no relevant trainees')
             return
 
-        went_to_gym_plural = 'הלכתם היום לחדכ יא בוטים? {training}'
-        went_to_gym_individual = 'הלכת היום לחדכ יא בוט? {training}'
-
-        training_today_msg = ' '.join(trainee.first_name for trainee in relevant_trainees)
-
-        if len(relevant_trainees) > 1:
-            self.logger.info('more than one trainee therefore creating plural msg')
-            text = went_to_gym_plural.format(training=training_today_msg)
-        else:
-            self.logger.info('one trainee creating msg for individual')
-            text = went_to_gym_individual.format(training=training_today_msg)
-
-        keyboard = yes_or_no_inline_keyboard(callback_identifier=self.WENT_TO_GYM_QUERY_IDENTIFIER)
         try:
+            went_to_gym_msg = self._get_went_to_gym_msg(trainees=relevant_trainees)
+            keyboard = yes_or_no_inline_keyboard(callback_identifier=self.WENT_TO_GYM_QUERY_IDENTIFIER)
             self.updater.bot.send_message(chat_id=group.id,
-                                          text=text,
+                                          text=went_to_gym_msg,
                                           reply_markup=keyboard)
             self.logger.info('finished to remind to group %s', group)
         except Timeout:
@@ -85,3 +79,14 @@ class WentToGymTask(Task):
             bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
                                     callback_query_id=update.callback_query.id)
 
+    def _get_went_to_gym_msg(self, trainees):
+        training_today_msg = ' '.join(trainee.first_name for trainee in trainees)
+
+        if len(trainees) > 1:
+            self.logger.info('more than one trainee therefore creating plural msg')
+            went_go_gym_msg = self.WENT_TO_GYM_PLURAL.format(training=training_today_msg)
+        else:
+            self.logger.info('one trainee creating msg for individual')
+            went_go_gym_msg = self.WENT_TO_GYM_INDIVIDUAL.format(training=training_today_msg)
+
+        return went_go_gym_msg

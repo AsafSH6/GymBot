@@ -16,7 +16,7 @@ class Task(object):
     def get_start_time(self):
         raise NotImplementedError('Not implemented start time method.')
 
-    def execute(self, *args, **kwargs):
+    def _execute(self, *args, **kwargs):
         raise NotImplementedError('Not implemented execute method.')
 
     def start(self, *args, **kwargs):
@@ -28,7 +28,7 @@ class Task(object):
             raise RuntimeError('%s start time already passed' % self.__class__.__name__)
 
         threading.Timer(start_time,
-                        self.execute,
+                        self._execute,
                         args=args,
                         kwargs=kwargs).start()
         self.logger.info('started task %s', self.__class__.__name__)
@@ -57,8 +57,8 @@ class Task(object):
         self.logger.info('requested target time is %s', target_time)
         now = datetime.today()
         target_datetime = now.replace(hour=target_time.hour,
-                                       minute=target_time.minute,
-                                       second=target_time.second)
+                                      minute=target_time.minute,
+                                      second=target_time.second)
         if now > target_datetime:  # time already passed- move to the next day.
             self.logger.info('time already passed, targeting time for tomorrow')
             target_datetime += timedelta(days=1)

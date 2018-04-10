@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
+from gym_bot_app import WEIGHT_LIFTER_EMOJI
 from gym_bot_app.models import Day
 
 
@@ -20,6 +21,22 @@ def all_group_participants_select_days_inline_keyboard(group, callback_identifie
         callback_data = '{callback_identifier} {day_name}'.format(callback_identifier=callback_identifier,
                                                                   day_name=day.name)
         keyboard.append([InlineKeyboardButton(training_in_day, callback_data=callback_data)])
+
+    return InlineKeyboardMarkup(keyboard)
+
+
+def trainee_select_days_inline_keyboard(trainee, callback_identifier):
+    keyboard = []
+    for day in trainee.training_days:
+        training_day = day.name
+
+        if day.selected:
+            training_day += ' ' + WEIGHT_LIFTER_EMOJI
+
+        callback_data = '{callback_identifier} {id} {day_name}'.format(id=trainee.id,
+                                                                       day_name=day.name,
+                                                                       callback_identifier=callback_identifier)
+        keyboard.append([InlineKeyboardButton(training_day, callback_data=callback_data)])
 
     return InlineKeyboardMarkup(keyboard)
 
