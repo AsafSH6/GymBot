@@ -25,14 +25,13 @@ logging.basicConfig(filename='logs/gymbot.log',
 
 def run_gym_bot(token, logger):
     updater = Updater(token=token)
-    dispatcher = updater.dispatcher
 
-    GoToGymTask(dispatcher=dispatcher, updater=updater, logger=logger).start()
-    WentToGymTask(dispatcher=dispatcher, updater=updater, logger=logger).start()
-    NewWeekSelectDaysTask(dispatcher=dispatcher, updater=updater, logger=logger).start()
-    SelectDaysCommand(dispatcher=dispatcher, updater=updater, logger=logger).start()
-    MyDaysCommand(dispatcher=dispatcher, updater=updater, logger=logger).start()
-    AllTheBotsCommand(dispatcher=dispatcher, updater=updater, logger=logger).start(name='all_the_botim')
+    GoToGymTask(updater=updater, logger=logger).start()
+    WentToGymTask(updater=updater, logger=logger).start()
+    NewWeekSelectDaysTask(updater=updater, logger=logger).start()
+    SelectDaysCommand(updater=updater, logger=logger).start()
+    MyDaysCommand(updater=updater, logger=logger).start()
+    AllTheBotsCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()

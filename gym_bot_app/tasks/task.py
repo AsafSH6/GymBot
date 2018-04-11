@@ -8,18 +8,42 @@ from gym_bot_app.utils import number_of_days_until_next_day
 
 
 class Task(object):
-    def __init__(self, dispatcher, updater, logger):
-        self.dispatcher = dispatcher
+    """Telegram gym bot abstract task class.
+
+    updater(telegram.ext.Updater): bots' Updater instance.
+    logger(logging.logger): logger to write to.
+
+    """
+    def __init__(self, updater, logger):
         self.updater = updater
         self.logger = logger
 
     def get_start_time(self):
+        """Get the start time of the task.
+
+        Returns:
+            int. number of seconds untill the start time.
+
+        """
         raise NotImplementedError('Not implemented start time method.')
 
     def _execute(self, *args, **kwargs):
+        """Task execution implementation.
+
+        Will be used once it reached the start time.
+
+        """
         raise NotImplementedError('Not implemented execute method.')
 
     def start(self, *args, **kwargs):
+        """Start the task.
+
+        Calculate the start time and waits until reached in order to run the _execute method.
+
+        Raises:
+            RuntimeError. start time already passed.
+
+        """
         self.logger.info('task: %s', self.__class__.__name__)
         start_time = self.get_start_time()
         self.logger.info('request task time is in %s seconds', start_time)
@@ -34,6 +58,16 @@ class Task(object):
         self.logger.info('started task %s', self.__class__.__name__)
 
     def _seconds_until_day_and_time(self, target_day_name, target_time):
+        """Calculate the number of seconds until the next occur of the target day and time.
+
+        Args:
+            target_day_name(str): name of the target day.
+            target_time(time.time): target time of the day.
+
+        Returns.
+            int. number of seconds until the given day and time.
+
+        """
         self.logger.info('requested target day is %s and time is %s', target_day_name, target_time)
         now = datetime.today()
         days_until_next_target_day = number_of_days_until_next_day(target_day_name)
@@ -54,6 +88,17 @@ class Task(object):
         return (target_datetime - now).total_seconds()
 
     def _seconds_until_time(self, target_time):
+        """Calculate the number of seconds until the next occur of the given time.
+
+        If the time already passed (in the current day), targeting time of the next day.
+
+        Args:
+            target_time(time.time): target time for calculation.
+
+        Returns:
+            int. number of seconds until the given time.
+
+        """
         self.logger.info('requested target time is %s', target_time)
         now = datetime.today()
         target_datetime = now.replace(hour=target_time.hour,

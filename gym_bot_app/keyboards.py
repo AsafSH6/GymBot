@@ -9,6 +9,16 @@ from gym_bot_app.models import Day
 
 
 def all_group_participants_select_days_inline_keyboard(group, callback_identifier):
+    """Select days inline keyboard for all participants in the given group.
+
+    Args:
+        group(models.Group): group to generate keyboard for.
+        callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
+
+    Returns:
+        InlineKeyboardMarkup. inline keyboard for all participants in group.
+
+    """
     keyboard = []
     for day in Day.get_week_days():
         training_in_day = day.name
@@ -26,6 +36,16 @@ def all_group_participants_select_days_inline_keyboard(group, callback_identifie
 
 
 def trainee_select_days_inline_keyboard(trainee, callback_identifier):
+    """Select days inline keyboard for specific trainee.
+
+    Args:
+        trainee(models.Trainee): trainee to generate keyboard for.
+        callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
+
+    Returns:
+        InlineKeyboardMarkup. inline keyboard for specific trainee.
+
+    """
     keyboard = []
     for day in trainee.training_days:
         training_day = day.name
@@ -42,6 +62,15 @@ def trainee_select_days_inline_keyboard(trainee, callback_identifier):
 
 
 def yes_or_no_inline_keyboard(callback_identifier):
+    """yes or no inline keyboard.
+
+    Args:
+        callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
+
+    Returns:
+        InlineKeyboardMarkup. inline yes or no keyboard.
+
+    """
     today_name = datetime.now().strftime('%A')
     yes_response_callback_data = '{callback_identifier} yes {today}'.format(callback_identifier=callback_identifier,
                                                                             today=today_name)

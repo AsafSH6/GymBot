@@ -13,28 +13,36 @@ from gym_bot_app.decorators import get_trainee_and_group, repeats, run_for_all_g
 
 
 class NewWeekSelectDaysTask(Task):
-    TARGET_DAY = 'Saturday'
-    TARGET_TIME = time(hour=21, minute=30, second=0, microsecond=0)
+    """Telegram gym bot new week select days task."""
+    DEFAULT_TARGET_DAY = 'Saturday'
+    DEFAULT_TARGET_TIME = time(hour=21, minute=30, second=0, microsecond=0)
 
     NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER = 'new_week'
 
     def __init__(self, target_day=None, target_time=None, *args, **kwargs):
         super(NewWeekSelectDaysTask, self).__init__(*args, **kwargs)
-        self.target_day = target_day or self.TARGET_DAY
-        self.target_time = target_time or self.TARGET_TIME
+        self.target_day = target_day or self.DEFAULT_TARGET_DAY
+        self.target_time = target_time or self.DEFAULT_TARGET_TIME
 
-        self.dispatcher.add_handler(
+        self.updater.dispatcher.add_handler(
             CallbackQueryHandler(pattern='{identifier}.*'.format(identifier=self.NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER),
                                  callback=self.new_week_selected_day_callback_query)
         )
 
     def get_start_time(self):
+        """Start time of select ne week days task based on the target day and target time."""
         return self._seconds_until_day_and_time(target_day_name=self.target_day,
                                                 target_time=self.target_time)
 
     @repeats(every_seconds=timedelta(weeks=1).total_seconds())
     @run_for_all_groups
     def _execute(self, group):
+        """Override method to execute new week select days task.
+
+        Unselect all training days for trainees in group and sends keyboard to select
+        training days for the next week.
+
+        """
         self.logger.info('new week remind for %s', group)
         for trainee in group.trainees:
             trainee.unselect_all_days()
@@ -54,6 +62,12 @@ class NewWeekSelectDaysTask(Task):
 
     @get_trainee_and_group
     def new_week_selected_day_callback_query(self, bot, update, trainee, group):
+        """Response handler of new week select days task.
+
+        In case day was not selected before- mark as selected.
+        In case day was selected before- unselect it.
+
+        """
         self.logger.info('new week selected day')
         self.logger.info('trainee selected %s in group %s', trainee, group)
         query = update.callback_query

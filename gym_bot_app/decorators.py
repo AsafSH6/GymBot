@@ -8,6 +8,14 @@ from gym_bot_app.utils import get_bot_and_update_from_args
 
 
 def get_trainee(func):
+    """Decorator to insert trainee as argument to the given function.
+
+    Appends the trainee as last argument of the function.
+
+    Notes:
+        base func has to be used in dispatcher as handler in order to receive the bot and the update arguments.
+
+    """
     def wrapper(*args, **kwargs):
         bot, update = get_bot_and_update_from_args(args)
         trainee_id = update.effective_user.id
@@ -24,6 +32,14 @@ def get_trainee(func):
 
 
 def get_group(func):
+    """Decorator to insert group as argument to the given function.
+
+    Appends the group as last argument of the function.
+
+    Notes:
+        func has to be used in dispatcher as handler in order to receive the bot and the update arguments.
+
+    """
     def wrapper(*args, **kwargs):
         bot, update = get_bot_and_update_from_args(args)
         group_id = update.message.chat_id if update.message else update.callback_query.message.chat_id
@@ -39,6 +55,20 @@ def get_group(func):
 
 
 def get_trainee_and_group(func):
+    """Decorator to insert trainee and group as arguments to the given function.
+
+    Appends the trainee and group as last argument of the function.
+    Adds the trainee to the group if it was not part of it.
+
+    Example:
+        @get_trainee_and_group
+        def run(bot, update, trainee, group):
+            ....
+
+    Notes:
+        func has to be used in dispatcher as handler in order to receive the bot and the update arguments.
+
+    """
     @get_trainee
     @get_group
     def wrapper(*args, **kwargs):
@@ -53,6 +83,12 @@ def get_trainee_and_group(func):
 
 
 def repeats(every_seconds):
+    """Decorator to repeat function.
+
+    Args:
+        every_seconds(int): number of seconds to wait between each repeat.
+
+    """
     def decorator(func):
         def wrapper(*args, **kwargs):
             threading.Timer(every_seconds,
@@ -65,6 +101,16 @@ def repeats(every_seconds):
 
 
 def run_for_all_groups(func):
+    """Decorator to run function for all existing groups in DB.
+
+    Insert the group to the function as last argument.
+
+    Example:
+        @run_for_all_groups
+        def say_hello(group):
+            ...
+
+    """
     def wrapper(*args, **kwargs):
         for group in Group.objects:
             args_with_group = args + (group, )

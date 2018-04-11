@@ -13,7 +13,8 @@ from gym_bot_app.decorators import repeats, get_trainee, run_for_all_groups
 
 
 class WentToGymTask(Task):
-    TARGET_TIME = time(hour=21, minute=0, second=0, microsecond=0)
+    """Telegram gym bot went to gym task."""
+    DEFAULT_TARGET_TIME = time(hour=21, minute=0, second=0, microsecond=0)
     WENT_TO_GYM_QUERY_IDENTIFIER = 'went_to_gym'
 
     WENT_TO_GYM_PLURAL = 'הלכתם היום לחדכ יא בוטים? {training}'
@@ -21,19 +22,28 @@ class WentToGymTask(Task):
 
     def __init__(self, target_time=None, *args, **kwargs):
         super(WentToGymTask, self).__init__(*args, **kwargs)
-        self.target_time = target_time or self.TARGET_TIME
+        self.target_time = target_time or self.DEFAULT_TARGET_TIME
 
-        self.dispatcher.add_handler(
+        self.updater.dispatcher.add_handler(
             CallbackQueryHandler(pattern='{identifier}.*'.format(identifier=self.WENT_TO_GYM_QUERY_IDENTIFIER),
                                  callback=self.went_to_gym_callback_query)
         )
 
     def get_start_time(self):
+        """Start time of went to gym task based on the target time."""
         return self._seconds_until_time(target_time=self.target_time)
 
     @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
     def _execute(self, group):
+        """Override method to execute went to gym task.
+
+        Sends went to gym message with the trainees of today to the given group chat.
+
+        Notes:
+            Includes inline keyboard with yes/no answers which is handled by went_to_gym_callback_query.
+
+        """
         self.logger.info('checking group %s', group)
         relevant_trainees = group.get_trainees_of_today()
         self.logger.info('relevant trainees %s', relevant_trainees)
@@ -54,9 +64,14 @@ class WentToGymTask(Task):
 
     @get_trainee
     def went_to_gym_callback_query(self, bot, update, trainee):
+        """Response handler of went to gym task.
+
+        Sends message to the trainee based on the response.
+
+        """
         self.logger.info('answer to went to gym question')
         query = update.callback_query
-        _, answer, day_name = query.data.split()
+        _, response, day_name = query.data.split()
         self.logger.info('the trainee that answered %s', trainee)
         self.logger.info('the day is %s', day_name)
 
@@ -66,7 +81,7 @@ class WentToGymTask(Task):
                                     callback_query_id=update.callback_query.id)
             return
 
-        if answer == 'yes':
+        if response == 'yes':
             self.logger.info('%s answered yes', trainee.first_name)
             bot.send_message(chat_id=query.message.chat_id,
                              text='כל הכבוד {trainee} אלוף!'.format(trainee=trainee.first_name))
@@ -80,6 +95,15 @@ class WentToGymTask(Task):
                                     callback_query_id=update.callback_query.id)
 
     def _get_went_to_gym_msg(self, trainees):
+        """Generate went to gym message based on the given trainees.
+
+        Args:
+            trainees(list): trainees that will be included in the message.
+
+        Returns:
+            str. message of went to gym with the given trainees.
+
+        """
         training_today_msg = ' '.join(trainee.first_name for trainee in trainees)
 
         if len(trainees) > 1:

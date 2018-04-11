@@ -10,33 +10,60 @@ from gym_bot_app.keyboards import trainee_select_days_inline_keyboard
 
 
 class SelectDaysCommand(Command):
-    NAME = 'select_days'
+    """Telegram gym bot select days command.
+
+    Sends keyboard that allows to select training days.
+
+    """
+    DEFAULT_COMMAND_NAME = 'select_days'
     SELECT_DAYS_QUERY_IDENTIFIER = 'select_days'
+
+    SELECT_DAYS_MSG = 'באיזה ימים אתה מתאמן יא בוט?'
+    CANT_CHOOSE_TO_OTHERS_MSG = 'אי אפשר לבחור לאחרים יא בוט'
+    ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG = 'יא בוט על חלל, כבר שינית את זה במקום אחר...'
 
     def __init__(self, *args, **kwargs):
         super(SelectDaysCommand, self).__init__(*args, **kwargs)
-        self.dispatcher.add_handler(
+        self.updater.dispatcher.add_handler(
             CallbackQueryHandler(pattern='{identifier}.*'.format(identifier=self.SELECT_DAYS_QUERY_IDENTIFIER),
                                  callback=self.selected_day_callback_query),  # selected training day
         )
 
     @get_trainee_and_group
     def _handler(self, bot, update, trainee, group):
+        """Override method to handle select days command.
+
+        Generate keyboard to select or unselect training days.
+
+        """
         self.logger.info('select days command')
         self.logger.info('trainee to select days %s', trainee)
         self.logger.info('the group is %s', group)
 
-        keyboard = trainee_select_days_inline_keyboard(trainee=trainee,
-                                                       callback_identifier=self.SELECT_DAYS_QUERY_IDENTIFIER)
-        update.message.reply_text('באיזה ימים אתה מתאמן יא בוט?', reply_markup=keyboard)
+        keyboard = self.get_select_days_keyboard(trainee=trainee)
+        update.message.reply_text(self.SELECT_DAYS_MSG, reply_markup=keyboard)
 
     @classmethod
-    def get_select_days_keyboard_for_trainee(cls, trainee):
+    def get_select_days_keyboard(cls, trainee):
+        """Get trainee select days inline keyboard of given trainee with SelectDaysCommand query identifier.
+
+        Using this keyboard cause the response to be handled by the SelectDaysCommand response handler.
+
+        Args:
+            trainee(models.Trainee): trainee to generate the keyboard for.
+
+        """
         return trainee_select_days_inline_keyboard(trainee=trainee,
                                                    callback_identifier=cls.SELECT_DAYS_QUERY_IDENTIFIER)
 
     @get_trainee
     def selected_day_callback_query(self, bot, update, trainee):
+        """Response handler of select days command.
+
+        In case day was not selected before- mark it as selected.
+        In case day was selected before- unselect it.
+
+        """
         self.logger.info('select day')
         self.logger.info('trainee selected %s', trainee)
 
@@ -45,7 +72,7 @@ class SelectDaysCommand(Command):
 
         if trainee.id != unicode(trainee_id):  # other trainee tried to select days for this trainee
             self.logger.info('trainee is not allow to choose for others')
-            bot.answerCallbackQuery(text='אי אפשר לבחור לאחרים יא בוט',
+            bot.answerCallbackQuery(text=self.CANT_CHOOSE_TO_OTHERS_MSG,
                                     callback_query_id=update.callback_query.id,
                                     parse_mode=ParseMode.HTML)
             return
@@ -53,13 +80,8 @@ class SelectDaysCommand(Command):
         selected_day = trainee.training_days.get(name=selected_day)
         self.logger.info('selected day %s', selected_day)
 
-        if selected_day.selected:
-            self.logger.info('already selected day, removing it from the trainee training days')
-        else:
-            self.logger.info('new selected day, adding it to the trainee training days')
         selected_day.selected = not selected_day.selected
-        updated_keyboard = trainee_select_days_inline_keyboard(trainee=trainee,
-                                                               callback_identifier=self.SELECT_DAYS_QUERY_IDENTIFIER)
+        updated_keyboard = self.get_select_days_keyboard(trainee=trainee)
 
         try:
             bot.edit_message_reply_markup(chat_id=query.message.chat_id,
@@ -70,7 +92,7 @@ class SelectDaysCommand(Command):
         except error.BadRequest:
             self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
                               ' another keyboard.')
-            bot.answerCallbackQuery(text='יא בוט על חלל, כבר שינית את זה במקום אחר...',
+            bot.answerCallbackQuery(text=self.ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG,
                                     callback_query_id=update.callback_query.id)
 
         trainee.save()  # save to db after the message sent to get better performance

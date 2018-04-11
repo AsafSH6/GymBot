@@ -10,21 +10,28 @@ from gym_bot_app.decorators import repeats, run_for_all_groups
 
 
 class GoToGymTask(Task):
-    TARGET_TIME = time(hour=9, minute=0, second=0, microsecond=0)
+    """Telegram gym bot go to gym task."""
+    DEFAULT_TARGET_TIME = time(hour=9, minute=0, second=0, microsecond=0)
 
     GO_TO_GYM_PLURAL = 'לכו היום לחדר כושר יא בוטים {training}'
     GO_TO_GYM_INDIVIDUAL = 'לך היום לחדר כושר יא בוט {training}'
 
     def __init__(self, target_time=None, *args, **kwargs):
         super(GoToGymTask, self).__init__(*args, **kwargs)
-        self.target_time = target_time or self.TARGET_TIME
+        self.target_time = target_time or self.DEFAULT_TARGET_TIME
 
     def get_start_time(self):
+        """Start time of go to gym task based on the target time."""
         return self._seconds_until_time(target_time=self.target_time)
 
     @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
     def _execute(self, group):
+        """Override method to execute go to gym task.
+
+        Sends go to gym message with the trainees of today to the given group chat.
+
+        """
         self.logger.info('checking group %s', group)
         relevant_trainees = group.get_trainees_of_today()
         self.logger.info('relevant trainees %s', relevant_trainees)
@@ -41,6 +48,15 @@ class GoToGymTask(Task):
             self.logger.error('Timeout occurred')
 
     def _get_go_to_gym_msg(self, trainees):
+        """Generate go to gym message based on the given trainees.
+
+        Args:
+            trainees(list): trainees that will be included in the message.
+
+        Returns:
+            str. message of go to gym with the given trainees.
+
+        """
         training_today_msg = ' '.join(trainee.first_name for trainee in trainees)
 
         if len(trainees) > 1:
