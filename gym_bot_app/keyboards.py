@@ -8,6 +8,10 @@ from gym_bot_app import WEIGHT_LIFTER_EMOJI
 from gym_bot_app.models import Day
 
 
+YES_RESPONSE = 'yes'
+NO_RESPONSE = 'no'
+
+
 def all_group_participants_select_days_inline_keyboard(group, callback_identifier):
     """Select days inline keyboard for all participants in the given group.
 
@@ -72,10 +76,12 @@ def yes_or_no_inline_keyboard(callback_identifier):
 
     """
     today_name = datetime.now().strftime('%A')
-    yes_response_callback_data = '{callback_identifier} yes {today}'.format(callback_identifier=callback_identifier,
-                                                                            today=today_name)
-    no_response_callback_data = '{callback_identifier} no {today}'.format(callback_identifier=callback_identifier,
-                                                                          today=today_name)
+    yes_response_callback_data = '{callback_identifier} {yes_response} {today}'.format(callback_identifier=callback_identifier,
+                                                                                       yes_response=YES_RESPONSE,
+                                                                                       today=today_name)
+    no_response_callback_data = '{callback_identifier} {no_response} {today}'.format(callback_identifier=callback_identifier,
+                                                                                     no_response=NO_RESPONSE,
+                                                                                     today=today_name)
 
     keyboard = [[InlineKeyboardButton('כן',
                                       callback_data=yes_response_callback_data),

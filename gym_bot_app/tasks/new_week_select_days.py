@@ -8,7 +8,7 @@ from telegram.ext import CallbackQueryHandler
 from telegram.vendor.ptb_urllib3.urllib3 import Timeout
 
 from gym_bot_app.keyboards import all_group_participants_select_days_inline_keyboard
-from gym_bot_app.tasks.task import Task
+from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import get_trainee_and_group, repeats, run_for_all_groups
 
 
@@ -18,6 +18,9 @@ class NewWeekSelectDaysTask(Task):
     DEFAULT_TARGET_TIME = time(hour=21, minute=30, second=0, microsecond=0)
 
     NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER = 'new_week'
+
+    NEW_WEEK_SELECT_DAYS_MSG = 'כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת'
+    ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG = 'יא בוט על חלל, כבר שינית את זה במקום אחר...'
 
     def __init__(self, target_day=None, target_time=None, *args, **kwargs):
         super(NewWeekSelectDaysTask, self).__init__(*args, **kwargs)
@@ -43,19 +46,19 @@ class NewWeekSelectDaysTask(Task):
         training days for the next week.
 
         """
-        self.logger.info('new week remind for %s', group)
+        self.logger.info('Executing new week select days task with %s', group)
+
         for trainee in group.trainees:
             trainee.unselect_all_days()
-        self.logger.info('unselected all days for the trainees in group')
+        self.logger.debug('Unselected all days for the trainees in group')
 
-        self.logger.info('generation inline keyboard for new week select days for group %s', group)
         keyboard = all_group_participants_select_days_inline_keyboard(
             group=group,
             callback_identifier=self.NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER
         )
         try:
             self.updater.bot.send_message(chat_id=group.id,
-                                          text='כל הבוטים, מוזמנים למלא את ימי האימון לשבוע הקרוב כדי שתוכלו כבר מעכשיו לחשוב על תירוצים למה לא ללכת',
+                                          text=self.NEW_WEEK_SELECT_DAYS_MSG,
                                           reply_markup=keyboard)
         except Timeout:
             self.logger.error('Timeout occurred')
@@ -68,18 +71,16 @@ class NewWeekSelectDaysTask(Task):
         In case day was selected before- unselect it.
 
         """
-        self.logger.info('new week selected day')
-        self.logger.info('trainee selected %s in group %s', trainee, group)
-        query = update.callback_query
+        self.logger.info('New week selected day callback query with %s in %s', trainee, group)
 
+        query = update.callback_query
         _, selected_day_name = query.data.split()
-        self.logger.info('selected day name is %s', selected_day_name)
+        self.logger.debug('Selected day name is %s', selected_day_name)
         selected_day = trainee.training_days.get(name=selected_day_name)
         selected_day.selected = not selected_day.selected
         trainee.save()
         group.reload()
 
-        self.logger.info('generation inline keyboard for new week select days for group %s', group)
         keyboard = all_group_participants_select_days_inline_keyboard(
             group=group,
             callback_identifier=self.NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER
@@ -93,5 +94,5 @@ class NewWeekSelectDaysTask(Task):
         except error.BadRequest:
             self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
                               ' another keyboard.')
-            bot.answerCallbackQuery(text='יא בוט על חלל, כבר שינית את זה במקום אחר...',
+            bot.answerCallbackQuery(text=self.ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG,
                                     callback_query_id=update.callback_query.id)

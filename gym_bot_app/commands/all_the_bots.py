@@ -1,9 +1,9 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
-from gym_bot_app.commands.command import Command
-from gym_bot_app.decorators import get_group
 from gym_bot_app.models import Day
+from gym_bot_app.commands import Command
+from gym_bot_app.decorators import get_group
 
 
 class AllTheBotsCommand(Command):
@@ -25,9 +25,13 @@ class AllTheBotsCommand(Command):
         Checks the training days of all trainees in the given group and send it back to the chat.
 
         """
+        self.logger.info('All the bots command with %s', group)
+
         days_and_trainees = []
         for day in Day.get_week_days():
             trainees_in_day = group.get_trainees_in_day(day.name)
+            self.logger.debug('Trainees in day %s are %s', day.name, trainees_in_day)
+
             training_trainees = self._get_msg_of_training_trainees_in_day(trainees_in_day=trainees_in_day,
                                                                           day_name=day.name)
             days_and_trainees.append(training_trainees)

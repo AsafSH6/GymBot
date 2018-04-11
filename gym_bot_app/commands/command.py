@@ -43,5 +43,5 @@ class Command(object):
         self.updater.dispatcher.add_handler(CommandHandler(command=command_name,
                                                            callback=self._handler,
                                                            *args, **kwargs))
-        self.logger.info('command: %s ', self.__class__.__name__)
+        self.logger.info('Set %s', self.__class__.__name__)
 

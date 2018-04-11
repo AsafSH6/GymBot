@@ -4,9 +4,9 @@ from __future__ import unicode_literals
 from telegram import ParseMode, error
 from telegram.ext import CallbackQueryHandler
 
-from gym_bot_app.commands.command import Command
-from gym_bot_app.decorators import get_trainee, get_trainee_and_group
+from gym_bot_app.commands import Command
 from gym_bot_app.keyboards import trainee_select_days_inline_keyboard
+from gym_bot_app.decorators import get_trainee, get_trainee_and_group
 
 
 class SelectDaysCommand(Command):
@@ -29,16 +29,14 @@ class SelectDaysCommand(Command):
                                  callback=self.selected_day_callback_query),  # selected training day
         )
 
-    @get_trainee_and_group
-    def _handler(self, bot, update, trainee, group):
+    @get_trainee
+    def _handler(self, bot, update, trainee):
         """Override method to handle select days command.
 
         Generate keyboard to select or unselect training days.
 
         """
-        self.logger.info('select days command')
-        self.logger.info('trainee to select days %s', trainee)
-        self.logger.info('the group is %s', group)
+        self.logger.info('Select days command with %s', trainee)
 
         keyboard = self.get_select_days_keyboard(trainee=trainee)
         update.message.reply_text(self.SELECT_DAYS_MSG, reply_markup=keyboard)
@@ -64,26 +62,24 @@ class SelectDaysCommand(Command):
         In case day was selected before- unselect it.
 
         """
-        self.logger.info('select day')
-        self.logger.info('trainee selected %s', trainee)
+        self.logger.info('Selected day callback query with %s', trainee)
 
         query = update.callback_query
         _, trainee_id, selected_day = query.data.split()
 
         if trainee.id != unicode(trainee_id):  # other trainee tried to select days for this trainee
-            self.logger.info('trainee is not allow to choose for others')
+            self.logger.debug('Trainee is not allow to choose for others')
             bot.answerCallbackQuery(text=self.CANT_CHOOSE_TO_OTHERS_MSG,
                                     callback_query_id=update.callback_query.id,
                                     parse_mode=ParseMode.HTML)
             return
 
-        selected_day = trainee.training_days.get(name=selected_day)
-        self.logger.info('selected day %s', selected_day)
-
-        selected_day.selected = not selected_day.selected
-        updated_keyboard = self.get_select_days_keyboard(trainee=trainee)
-
         try:
+            selected_day = trainee.training_days.get(name=selected_day)
+            self.logger.debug('Selected day %s', selected_day)
+
+            selected_day.selected = not selected_day.selected
+            updated_keyboard = self.get_select_days_keyboard(trainee=trainee)
             bot.edit_message_reply_markup(chat_id=query.message.chat_id,
                                           message_id=query.message.message_id,
                                           reply_markup=updated_keyboard)

@@ -5,7 +5,7 @@ from datetime import time, timedelta
 
 from telegram.vendor.ptb_urllib3.urllib3.util.timeout import Timeout
 
-from gym_bot_app.tasks.task import Task
+from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import repeats, run_for_all_groups
 
 
@@ -32,18 +32,18 @@ class GoToGymTask(Task):
         Sends go to gym message with the trainees of today to the given group chat.
 
         """
-        self.logger.info('checking group %s', group)
+        self.logger.info('Executing go to gym task with %s', group)
+
         relevant_trainees = group.get_trainees_of_today()
-        self.logger.info('relevant trainees %s', relevant_trainees)
+        self.logger.debug('Relevant trainees %s', relevant_trainees)
 
         if not relevant_trainees:
-            self.logger.info('there are no relevant trainees')
+            self.logger.debug('There are no relevant trainees')
             return
 
         try:
             go_to_gym_msg = self._get_go_to_gym_msg(trainees=relevant_trainees)
             self.updater.bot.send_message(chat_id=group.id, text=go_to_gym_msg)
-            self.logger.info('finished to remind to group %s', group)
         except Timeout:
             self.logger.error('Timeout occurred')
 
@@ -60,10 +60,10 @@ class GoToGymTask(Task):
         training_today_msg = ' '.join(trainee.first_name for trainee in trainees)
 
         if len(trainees) > 1:
-            self.logger.info('more than one trainee therefore creating plural msg')
+            self.logger.debug('More than one trainee therefore creating plural msg')
             go_to_gym_msg = self.GO_TO_GYM_PLURAL.format(training=training_today_msg)
         else:
-            self.logger.info('one trainee creating msg for individual')
+            self.logger.debug('One trainee creating msg for individual')
             go_to_gym_msg = self.GO_TO_GYM_INDIVIDUAL.format(training=training_today_msg)
 
         return go_to_gym_msg

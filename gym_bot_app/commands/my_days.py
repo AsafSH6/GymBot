@@ -1,9 +1,9 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
-from gym_bot_app.commands.command import Command
-from gym_bot_app.commands.select_days import SelectDaysCommand
 from gym_bot_app.decorators import get_trainee
+from gym_bot_app.commands import (Command,
+                                  SelectDaysCommand)
 
 
 class MyDaysCommand(Command):
@@ -26,17 +26,16 @@ class MyDaysCommand(Command):
         If trainee did not select any training days, sends select days keyboard based on SelectDaysCommand keyboard.
 
         """
-        self.logger.info('my days command')
-        self.logger.info('requested by trainee %s', trainee)
+        self.logger.info('My days command with %s', trainee)
 
         training_days = ', '.join(day.name for day in trainee.training_days.filter(selected=True))
-        if training_days:
-            self.logger.info('trainee days %s', training_days)
+        if training_days:  # trainee has selected training days.
+            self.logger.debug('Trainee days %s', training_days)
             bot.send_message(chat_id=update.message.chat_id,
                              reply_to_message_id=update.message.message_id,
                              text=training_days)
-        else:
-            self.logger.info('trainee does not have any training days')
+        else:  # trainee did not select any training days.
+            self.logger.debug('Trainee does not have any training days')
             select_days_keyboard = SelectDaysCommand.get_select_days_keyboard(trainee=trainee)
             bot.send_message(chat_id=update.message.chat_id,
                              reply_to_message_id=update.message.message_id,

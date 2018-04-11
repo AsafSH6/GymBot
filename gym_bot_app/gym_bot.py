@@ -6,13 +6,12 @@ import os
 
 from telegram.ext import Updater
 
-from gym_bot_app.commands.all_the_bots import AllTheBotsCommand
-from gym_bot_app.commands.my_days import MyDaysCommand
-from gym_bot_app.commands.select_days import SelectDaysCommand
+from gym_bot_app.commands import (MyDaysCommand,
+                                  SelectDaysCommand,
+                                  AllTheBotsCommand)
 from gym_bot_app.tasks import (GoToGymTask,
-                               NewWeekSelectDaysTask,
                                WentToGymTask,
-                               )
+                               NewWeekSelectDaysTask)
 
 
 MSG_TIMEOUT = 20
@@ -20,17 +19,20 @@ MSG_TIMEOUT = 20
 logging.basicConfig(filename='logs/gymbot.log',
                     encoding='utf-8',
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 
 def run_gym_bot(token, logger):
     updater = Updater(token=token)
 
+    """ Tasks """
     GoToGymTask(updater=updater, logger=logger).start()
     WentToGymTask(updater=updater, logger=logger).start()
     NewWeekSelectDaysTask(updater=updater, logger=logger).start()
-    SelectDaysCommand(updater=updater, logger=logger).start()
+
+    """ Commands """
     MyDaysCommand(updater=updater, logger=logger).start()
+    SelectDaysCommand(updater=updater, logger=logger).start()
     AllTheBotsCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
