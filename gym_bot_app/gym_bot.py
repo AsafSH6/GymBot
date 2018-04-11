@@ -54,4 +54,3 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     run_gym_bot(token, logger)
-

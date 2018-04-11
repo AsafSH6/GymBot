@@ -33,7 +33,7 @@ class Command(object):
         """Start handling the incoming requests of the command.
 
         Args:
-            command_name(str): name of the command that will be used in telegram chat in orer to execute this command.
+            command_name(str | unicode): name of the command that will be used in telegram chat in orer to execute this command.
                                 if not specified, the default command name will be used.
             args(tuple): will be passed to the dispatcher handler.
             kwargs(dict): will be passed to the dispatcher handler.
