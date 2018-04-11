@@ -14,12 +14,11 @@ from mongoengine import (Document,
 
 
 class ExtendedQuerySet(QuerySet):
-    """Extension of regular QuerySet."""
+    """Extension of default QuerySet."""
 
     def get(self, *q_objs, **query):
         """Override method to look for 'id' argument and cast it to unicode.
 
-        If 'id' was not found in arguments then use the parents get method.
         If object does not exist catches the exception and returns None.
 
         """
