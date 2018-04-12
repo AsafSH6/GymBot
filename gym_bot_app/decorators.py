@@ -1,7 +1,10 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
+import logging
 import threading
+
+from telegram.error import TimedOut
 
 from gym_bot_app.models import Group, Trainee
 from gym_bot_app.utils import get_bot_and_update_from_args
@@ -10,6 +13,7 @@ from gym_bot_app.utils import get_bot_and_update_from_args
 def get_trainee(func):
     """Decorator to insert trainee as argument to the given function.
 
+    Creates new Trainee if did not exist in DB.
     Appends the trainee as last argument of the function.
 
     Notes:
@@ -34,6 +38,7 @@ def get_trainee(func):
 def get_group(func):
     """Decorator to insert group as argument to the given function.
 
+    Creates new Group if did not exist in DB.
     Appends the group as last argument of the function.
 
     Notes:
@@ -57,6 +62,8 @@ def get_group(func):
 def get_trainee_and_group(func):
     """Decorator to insert trainee and group as arguments to the given function.
 
+    Creates new Trainee if did not exist in DB.
+    Creates new Group if did not exist in DB.
     Appends the trainee and group as last argument of the function.
     Adds the trainee to the group if it was not part of it.
 
@@ -104,6 +111,7 @@ def run_for_all_groups(func):
     """Decorator to run function for all existing groups in DB.
 
     Insert the group to the function as last argument.
+    Handles TimedOut exceptions if occurred.
 
     Example:
         @run_for_all_groups
@@ -112,8 +120,18 @@ def run_for_all_groups(func):
 
     """
     def wrapper(*args, **kwargs):
+        logger = logging.getLogger(func.__module__)
         for group in Group.objects:
-            args_with_group = args + (group, )
-            func(*args_with_group, **kwargs)
+            try:
+                args_with_group = args + (group, )
+                func(*args_with_group, **kwargs)
+            except TimedOut:
+                logger.error('Timeout occurred in class %s with execution func %s',
+                             func.im_class.__name__,
+                             func.func_name)
+            except Exception:
+                logger.error('Exception occurred in class %s with execution func %s',
+                             func.im_class.__name__,
+                             func.func_name)
 
     return wrapper

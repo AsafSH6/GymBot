@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 
 from datetime import time, timedelta
 
-from telegram.vendor.ptb_urllib3.urllib3.util.timeout import Timeout
-
 from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import repeats, run_for_all_groups
 
@@ -41,11 +39,8 @@ class GoToGymTask(Task):
             self.logger.debug('There are no relevant trainees')
             return
 
-        try:
-            go_to_gym_msg = self._get_go_to_gym_msg(trainees=relevant_trainees)
-            self.updater.bot.send_message(chat_id=group.id, text=go_to_gym_msg)
-        except Timeout:
-            self.logger.error('Timeout occurred')
+        go_to_gym_msg = self._get_go_to_gym_msg(trainees=relevant_trainees)
+        self.updater.bot.send_message(chat_id=group.id, text=go_to_gym_msg)
 
     def _get_go_to_gym_msg(self, trainees):
         """Generate go to gym message based on the given trainees.

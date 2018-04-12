@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from datetime import time, timedelta
 
 from telegram.ext import CallbackQueryHandler
-from telegram.vendor.ptb_urllib3.urllib3 import Timeout
 
 from gym_bot_app import THUMBS_UP_EMOJI, THUMBS_DOWN_EMOJI
 from gym_bot_app.keyboards import yes_or_no_inline_keyboard, YES_RESPONSE
@@ -14,7 +13,7 @@ from gym_bot_app.decorators import repeats, get_trainee, run_for_all_groups
 
 class WentToGymTask(Task):
     """Telegram gym bot went to gym task."""
-    DEFAULT_TARGET_TIME = time(hour=21, minute=0, second=0, microsecond=0)
+    DEFAULT_TARGET_TIME = time(hour=23, minute=0, second=0, microsecond=0)
     WENT_TO_GYM_QUERY_IDENTIFIER = 'went_to_gym'
 
     WENT_TO_GYM_PLURAL_MSG = 'הלכתם היום לחדכ יא בוטים? {training}'
@@ -56,14 +55,11 @@ class WentToGymTask(Task):
             self.logger.debug('There are no relevant trainees')
             return
 
-        try:
-            went_to_gym_msg = self._get_went_to_gym_msg(trainees=relevant_trainees)
-            keyboard = yes_or_no_inline_keyboard(callback_identifier=self.WENT_TO_GYM_QUERY_IDENTIFIER)
-            self.updater.bot.send_message(chat_id=group.id,
-                                          text=went_to_gym_msg,
-                                          reply_markup=keyboard)
-        except Timeout:
-            self.logger.error('Timeout occurred')
+        went_to_gym_msg = self._get_went_to_gym_msg(trainees=relevant_trainees)
+        keyboard = yes_or_no_inline_keyboard(callback_identifier=self.WENT_TO_GYM_QUERY_IDENTIFIER)
+        self.updater.bot.send_message(chat_id=group.id,
+                                      text=went_to_gym_msg,
+                                      reply_markup=keyboard)
 
     @get_trainee
     def went_to_gym_callback_query(self, bot, update, trainee):
