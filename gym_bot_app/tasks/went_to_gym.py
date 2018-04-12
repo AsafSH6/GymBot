@@ -13,7 +13,7 @@ from gym_bot_app.decorators import repeats, get_trainee, run_for_all_groups
 
 class WentToGymTask(Task):
     """Telegram gym bot went to gym task."""
-    DEFAULT_TARGET_TIME = time(hour=23, minute=0, second=0, microsecond=0)
+    DEFAULT_TARGET_TIME = time(hour=21, minute=0, second=0, microsecond=0)
     WENT_TO_GYM_QUERY_IDENTIFIER = 'went_to_gym'
 
     WENT_TO_GYM_PLURAL_MSG = 'הלכתם היום לחדכ יא בוטים? {training}'
