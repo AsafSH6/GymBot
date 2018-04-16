@@ -6,9 +6,11 @@ from mongoengine import (Document,
                          ListField,
                          StringField,
                          BooleanField,
+                         DateTimeField,
                          EmbeddedDocument,
-                         EmbeddedDocumentListField,
+                         LazyReferenceField,
                          CachedReferenceField,
+                         EmbeddedDocumentListField,
                          QuerySet,
                          DoesNotExist)
 
@@ -81,6 +83,24 @@ class Trainee(Document):
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,
                                                     first_name=self.first_name)
+
+    def __str__(self):
+        return repr(self)
+
+    def __unicode__(self):
+        return repr(self)
+
+
+class TrainingDayInfo(Document):
+    trainee = LazyReferenceField(document_type=Trainee)
+    date = DateTimeField(default=datetime.now)
+    trained = BooleanField()
+
+    def __repr__(self):
+        return '<TrainingDayInfo trainee {trainee_pk} {trained} {date}>'.format(trainee_pk=self.trainee.pk,
+                                                                                trained='trained' if self.trained
+                                                                                        else 'did not train',
+                                                                                date=self.date.strftime('%d-%m-%Y %H:%M:%S'))
 
     def __str__(self):
         return repr(self)
