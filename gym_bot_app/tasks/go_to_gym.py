@@ -11,8 +11,8 @@ class GoToGymTask(Task):
     """Telegram gym bot go to gym task."""
     DEFAULT_TARGET_TIME = time(hour=9, minute=0, second=0, microsecond=0)
 
-    GO_TO_GYM_PLURAL = 'לכו היום לחדר כושר יא בוטים {training}'
-    GO_TO_GYM_INDIVIDUAL = 'לך היום לחדר כושר יא בוט {training}'
+    GO_TO_GYM_PLURAL = 'לכו היום לחדר כושר יא בוטים {trainees}'
+    GO_TO_GYM_INDIVIDUAL = 'לך היום לחדר כושר יא בוט {trainees}'
 
     def __init__(self, target_time=None, *args, **kwargs):
         super(GoToGymTask, self).__init__(*args, **kwargs)
@@ -56,9 +56,9 @@ class GoToGymTask(Task):
 
         if len(trainees) > 1:
             self.logger.debug('More than one trainee therefore creating plural msg')
-            go_to_gym_msg = self.GO_TO_GYM_PLURAL.format(training=training_today_msg)
+            go_to_gym_msg = self.GO_TO_GYM_PLURAL.format(trainees=training_today_msg)
         else:
             self.logger.debug('One trainee creating msg for individual')
-            go_to_gym_msg = self.GO_TO_GYM_INDIVIDUAL.format(training=training_today_msg)
+            go_to_gym_msg = self.GO_TO_GYM_INDIVIDUAL.format(trainees=training_today_msg)
 
         return go_to_gym_msg

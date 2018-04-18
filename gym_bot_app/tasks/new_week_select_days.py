@@ -45,6 +45,10 @@ class NewWeekSelectDaysTask(Task):
         Unselect all training days for trainees in group and sends keyboard to select
         training days for the next week.
 
+        Notes:
+            Includes inline keyboard of select days with all group participants
+            which is handled by new_week_selected_day_callback_query.
+
         """
         self.logger.info('Executing new week select days task with %s', group)
 

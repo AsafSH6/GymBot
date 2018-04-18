@@ -34,6 +34,22 @@ def number_of_days_until_next_day(target_day_name):
     return (DAYS_NAME.index(target_day_name.capitalize()) - DAYS_NAME.index(today)) % len(DAYS_NAME)
 
 
+def trainee_already_marked_training_date(trainee, training_date):
+    """Check whether trainee already marked the given training date.
+
+    If trainee already has training day info it means he/she answered marked the given date.
+
+    Args:
+        trainee(models.Trainee): trainee instance to check whether already marked the given date.
+        training_date(datetime.date): training date to check.
+
+    Returns:
+        bool. True if trainee already marked the given date, otherwise False.
+
+    """
+    return bool(trainee.get_training_info(training_date=training_date))
+
+
 def find_instance_in_args(obj, args):
     """find instance of given object type args.
 

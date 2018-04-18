@@ -103,7 +103,8 @@ class Task(object):
         now = datetime.today()
         target_datetime = now.replace(hour=target_time.hour,
                                       minute=target_time.minute,
-                                      second=target_time.second)
+                                      second=target_time.second,
+                                      microsecond=target_time.microsecond)
         if now > target_datetime:  # time already passed- move to the next day.
             self.logger.debug('Time already passed, targeting time for tomorrow')
             target_datetime += timedelta(days=1)

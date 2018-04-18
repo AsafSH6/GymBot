@@ -1,7 +1,8 @@
 # encoding: utf-8
 from __future__ import unicode_literals
-from datetime import datetime
-from gym_bot_app import DAYS_NAME
+
+from datetime import datetime, timedelta
+
 from mongoengine import (Document,
                          ListField,
                          StringField,
@@ -11,25 +12,10 @@ from mongoengine import (Document,
                          LazyReferenceField,
                          CachedReferenceField,
                          EmbeddedDocumentListField,
-                         QuerySet,
-                         DoesNotExist)
+                         )
 
-
-class ExtendedQuerySet(QuerySet):
-    """Extension of default QuerySet."""
-
-    def get(self, *q_objs, **query):
-        """Override method to look for 'id' argument and cast it to unicode.
-
-        If object does not exist catches the exception and returns None.
-
-        """
-        try:
-            if 'id' in query:
-                query['id'] = unicode(query['id'])
-            return super(ExtendedQuerySet, self).get(*q_objs, **query)
-        except DoesNotExist:
-            return None
+from gym_bot_app import DAYS_NAME
+from gym_bot_app.query_sets import ExtendedQuerySet
 
 
 class Day(EmbeddedDocument):
@@ -79,6 +65,42 @@ class Trainee(Document):
 
     def is_training_in_day(self, day_name):
         return self.training_days.get(name=day_name).selected
+
+    def add_training_info(self, training_date, trained):
+        """Add training info to trainee.
+
+        Args:
+            training_date(datetime.date | datetime.datetime): date of the training info.
+            trained(bool): whether trainee trained or not.
+
+        Returns:
+            TrainingDayInfo. instance of the created training day info.
+
+        Raises:
+            RuntimeError. in case trainee already have training day info in the given date.
+
+        """
+        if self.get_training_info(training_date=training_date):
+            raise RuntimeError('Already created training day info for today.')
+
+        return TrainingDayInfo.objects.create(trainee=self.pk,
+                                              date=training_date,
+                                              trained=trained)
+
+    def get_training_info(self, training_date):
+        """Check trainee training info of given date.
+        
+        Args:
+            training_date(datetime.date | datetime.datetime): date of requested training date.
+
+        Returns:
+            list. all TrainingDayInfo of requested training date.
+
+        """
+        next_day = training_date + timedelta(days=1)
+        return TrainingDayInfo.objects.filter(trainee=self.pk,
+                                              date__gte=training_date,
+                                              date__lt=next_day)
 
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,

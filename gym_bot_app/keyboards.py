@@ -10,10 +10,13 @@ from gym_bot_app.models import Day
 
 YES_RESPONSE = 'yes'
 NO_RESPONSE = 'no'
+DATE_FORMAT = '%d/%m/%Y'
 
 
 def all_group_participants_select_days_inline_keyboard(group, callback_identifier):
     """Select days inline keyboard for all participants in the given group.
+
+    callback_data is in form of (callback identifier, selected day name)
 
     Args:
         group(models.Group): group to generate keyboard for.
@@ -42,6 +45,8 @@ def all_group_participants_select_days_inline_keyboard(group, callback_identifie
 def trainee_select_days_inline_keyboard(trainee, callback_identifier):
     """Select days inline keyboard for specific trainee.
 
+    callback_data is in form of (callback identifier, selected trainee id, selected day name)
+
     Args:
         trainee(models.Trainee): trainee to generate keyboard for.
         callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
@@ -65,27 +70,35 @@ def trainee_select_days_inline_keyboard(trainee, callback_identifier):
     return InlineKeyboardMarkup(keyboard)
 
 
-def yes_or_no_inline_keyboard(callback_identifier):
+def yes_or_no_inline_keyboard(callback_identifier,
+                              yes_option=YES_RESPONSE,
+                              no_option=NO_RESPONSE,
+                              date_format=DATE_FORMAT):
     """yes or no inline keyboard.
+
+    callback_data is in form of (callback identifier, selected response, selected day date)
 
     Args:
         callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
+        yes_option (str | unicode): button yes option text.
+        no_option (str | unicode): button no option text.
+        date_format (str | unicode): format of date in callback data.
 
     Returns:
         InlineKeyboardMarkup. inline yes or no keyboard.
 
     """
-    today_name = datetime.now().strftime('%A')
-    yes_response_callback_data = '{callback_identifier} {yes_response} {today}'.format(callback_identifier=callback_identifier,
-                                                                                       yes_response=YES_RESPONSE,
-                                                                                       today=today_name)
-    no_response_callback_data = '{callback_identifier} {no_response} {today}'.format(callback_identifier=callback_identifier,
-                                                                                     no_response=NO_RESPONSE,
-                                                                                     today=today_name)
+    today_date = datetime.now().date().strftime(date_format)
+    yes_response_callback_data = '{callback_identifier} {yes_response} {date}'.format(callback_identifier=callback_identifier,
+                                                                                      yes_response=YES_RESPONSE,
+                                                                                      date=today_date)
+    no_response_callback_data = '{callback_identifier} {no_response} {date}'.format(callback_identifier=callback_identifier,
+                                                                                    no_response=NO_RESPONSE,
+                                                                                    date=today_date)
 
-    keyboard = [[InlineKeyboardButton('כן',
+    keyboard = [[InlineKeyboardButton(yes_option,
                                       callback_data=yes_response_callback_data),
-                 InlineKeyboardButton('אני אפס',
+                 InlineKeyboardButton(no_option,
                                       callback_data=no_response_callback_data)]]
 
     return InlineKeyboardMarkup(keyboard)
