@@ -41,5 +41,5 @@ class TrainedCommand(Command):
             bot.send_message(chat_id=update.message.chat_id,
                              reply_to_message_id=update.message.message_id,
                              text=self.TRAINED_TODAY_MSG)
-            trainee.add_training_info(training_date=today_date, trained=False)
+            trainee.add_training_info(training_date=today_date, trained=True)
 
