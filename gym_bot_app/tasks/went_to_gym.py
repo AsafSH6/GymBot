@@ -6,7 +6,8 @@ from datetime import time, timedelta, datetime
 from telegram.ext import CallbackQueryHandler
 
 from gym_bot_app.tasks import Task
-from gym_bot_app.utils import trainee_already_marked_training_date
+from gym_bot_app.utils import trainee_already_marked_training_date, \
+    get_trainees_that_selected_today_and_did_not_train_yet
 from gym_bot_app.keyboards import yes_or_no_inline_keyboard, YES_RESPONSE
 from gym_bot_app.decorators import repeats, get_trainee, run_for_all_groups
 from gym_bot_app import THUMBS_UP_EMOJI, THUMBS_DOWN_EMOJI, FACEPALMING_EMOJI
@@ -54,18 +55,17 @@ class WentToGymTask(Task):
         """
         self.logger.info('Executing went to gym task with %s', group)
 
-        relevant_trainees = group.get_trainees_of_today()
+        relevant_trainees = get_trainees_that_selected_today_and_did_not_train_yet(group)
         self.logger.debug('Relevant trainees %s', relevant_trainees)
 
-        if not relevant_trainees:
+        if relevant_trainees:
+            went_to_gym_msg = self._get_went_to_gym_msg(trainees=relevant_trainees)
+            went_to_gym_keyboard = self.get_went_to_gym_keyboard()
+            self.updater.bot.send_message(chat_id=group.id,
+                                          text=went_to_gym_msg,
+                                          reply_markup=went_to_gym_keyboard)
+        else:
             self.logger.debug('There are no relevant trainees')
-            return
-
-        went_to_gym_msg = self._get_went_to_gym_msg(trainees=relevant_trainees)
-        went_to_gym_keyboard = self.get_went_to_gym_keyboard()
-        self.updater.bot.send_message(chat_id=group.id,
-                                      text=went_to_gym_msg,
-                                      reply_markup=went_to_gym_keyboard)
 
     @get_trainee
     def went_to_gym_callback_query(self, bot, update, trainee):
@@ -85,27 +85,25 @@ class WentToGymTask(Task):
             self.logger.debug('Trainee is not allowed to answer the question')
             bot.answerCallbackQuery(text=self.NOT_YOUR_DAY_TO_TRAIN_MSG,
                                     callback_query_id=update.callback_query.id)
-            return
         elif trainee_already_marked_training_date(trainee=trainee, training_date=question_date):
             self.logger.debug('Trainee already answered to went to gym question')
             bot.answerCallbackQuery(text=self.ALREADY_ANSWERED_WENT_TO_GYM_QUESTION_MSG,
                                     callback_query_id=update.callback_query.id)
-            return
-
-        if response == YES_RESPONSE:
-            self.logger.debug('%s answered yes', trainee.first_name)
-            bot.send_message(chat_id=query.message.chat_id,
-                             text=self.TRAINEE_WENT_TO_GYM_MSG.format(trainee=trainee.first_name))
-            bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,
-                                    callback_query_id=update.callback_query.id)
-            trainee.add_training_info(training_date=question_date, trained=True)
         else:
-            self.logger.debug('%s answered no', trainee.first_name)
-            bot.send_message(chat_id=query.message.chat_id,
-                             text=self.TRAINEE_DIDNT_GO_TO_GYM_MSG.format(trainee=trainee.first_name))
-            bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
-                                    callback_query_id=update.callback_query.id)
-            trainee.add_training_info(training_date=question_date, trained=False)
+            if response == YES_RESPONSE:
+                self.logger.debug('%s answered yes', trainee.first_name)
+                bot.send_message(chat_id=query.message.chat_id,
+                                 text=self.TRAINEE_WENT_TO_GYM_MSG.format(trainee=trainee.first_name))
+                bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,
+                                        callback_query_id=update.callback_query.id)
+                trainee.add_training_info(training_date=question_date, trained=True)
+            else:
+                self.logger.debug('%s answered no', trainee.first_name)
+                bot.send_message(chat_id=query.message.chat_id,
+                                 text=self.TRAINEE_DIDNT_GO_TO_GYM_MSG.format(trainee=trainee.first_name))
+                bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
+                                        callback_query_id=update.callback_query.id)
+                trainee.add_training_info(training_date=question_date, trained=False)
 
     def _get_went_to_gym_msg(self, trainees):
         """Generate went to gym message based on the given trainees.

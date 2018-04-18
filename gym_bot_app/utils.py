@@ -50,6 +50,25 @@ def trainee_already_marked_training_date(trainee, training_date):
     return bool(trainee.get_training_info(training_date=training_date))
 
 
+def get_trainees_that_selected_today_and_did_not_train_yet(group):
+    """Get all trainees in group that selected today as training day but did not train yet.
+
+    Args:
+        group(models.Group): group instance to filter trainees that selected today as training day and did not
+                              train yet.
+
+    Returns:
+         list. all trainees in group that selected today as training day but did not train by now.
+
+    """
+    today_date = datetime.now().date()
+    today_training_trainees = group.get_trainees_of_today()
+    did_not_train_yet_trainees = [trainee for trainee in today_training_trainees
+                                  if not trainee_already_marked_training_date(trainee=trainee,
+                                                                              training_date=today_date)]
+    return did_not_train_yet_trainees
+
+
 def find_instance_in_args(obj, args):
     """find instance of given object type args.
 

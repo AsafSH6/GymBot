@@ -5,6 +5,7 @@ from datetime import time, timedelta
 
 from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import repeats, run_for_all_groups
+from gym_bot_app.utils import get_trainees_that_selected_today_and_did_not_train_yet
 
 
 class GoToGymTask(Task):
@@ -32,7 +33,7 @@ class GoToGymTask(Task):
         """
         self.logger.info('Executing go to gym task with %s', group)
 
-        relevant_trainees = group.get_trainees_of_today()
+        relevant_trainees = get_trainees_that_selected_today_and_did_not_train_yet(group)
         self.logger.debug('Relevant trainees %s', relevant_trainees)
 
         if not relevant_trainees:
