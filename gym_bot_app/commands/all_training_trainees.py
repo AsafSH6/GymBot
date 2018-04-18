@@ -6,26 +6,26 @@ from gym_bot_app.commands import Command
 from gym_bot_app.decorators import get_group
 
 
-class AllTheBotsCommand(Command):
-    """Telegram gym bot all the bots command.
+class AllTrainingTraineesCommand(Command):
+    """Telegram gym bot all training trainees command.
 
     Sends the selected training days of all trainees in the requested group.
 
     """
-    DEFAULT_COMMAND_NAME = 'all_the_bots'
+    DEFAULT_COMMAND_NAME = 'all_training_trainees'
     NOBODY_TRAINING_MARK = '-'
 
     def __init__(self, *args, **kwargs):
-        super(AllTheBotsCommand, self).__init__(*args, **kwargs)
+        super(AllTrainingTraineesCommand, self).__init__(*args, **kwargs)
 
     @get_group
     def _handler(self, bot, update, group):
-        """Override method to handle all the bots command.
+        """Override method to handle all training trainees command.
 
         Checks the training days of all trainees in the given group and send it back to the chat.
 
         """
-        self.logger.info('All the bots command with %s', group)
+        self.logger.info('All training trainees command with %s', group)
 
         days_and_trainees = []
         for day in Day.get_week_days():
