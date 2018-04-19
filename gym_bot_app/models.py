@@ -51,7 +51,9 @@ class Trainee(Document):
                                                                first_name=unicode(first_name),
                                                                training_days=training_days)
 
-    meta = {'queryset_class': TraineeQuerySet}
+    meta = {
+        'queryset_class': TraineeQuerySet,
+    }
 
     def unselect_all_days(self):
         for day in self.training_days:
@@ -118,6 +120,11 @@ class TrainingDayInfo(Document):
     date = DateTimeField(default=datetime.now)
     trained = BooleanField()
 
+    meta = {
+        'indexes': [('trainee', '-date')],
+        'index_background': True,
+    }
+
     def __repr__(self):
         return '<TrainingDayInfo trainee {trainee_pk} {trained} {date}>'.format(trainee_pk=self.trainee.pk,
                                                                                 trained='trained' if self.trained
@@ -140,7 +147,9 @@ class Group(Document):
             return super(Group.GroupQuerySet, self).create(id=unicode(id),
                                                            trainees=trainees)
 
-    meta = {'queryset_class': GroupQuerySet}
+    meta = {
+        'queryset_class': GroupQuerySet,
+    }
 
     def add_trainee(self, new_trainee):
         self.update(push__trainees=new_trainee)
