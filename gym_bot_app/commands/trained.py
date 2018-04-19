@@ -5,7 +5,7 @@ from datetime import datetime
 
 from gym_bot_app.commands import Command
 from gym_bot_app import FACEPALMING_EMOJI
-from gym_bot_app.decorators import get_trainee
+from gym_bot_app.decorators import get_trainee_and_group
 from gym_bot_app.utils import trainee_already_marked_training_date
 
 
@@ -22,24 +22,19 @@ class TrainedCommand(Command):
     def __init__(self, *args, **kwargs):
         super(TrainedCommand, self).__init__(*args, **kwargs)
 
-    @get_trainee
-    def _handler(self, bot, update, trainee):
+    @get_trainee_and_group
+    def _handler(self, bot, update, trainee, group):
         """Override method to handle trained command.
 
         Creates training day info of today.
 
         """
-        self.logger.info('Trained command with %s', trainee)
+        self.logger.info('Trained command with %s in %s', trainee, group)
 
         today_date = datetime.now().date()
         if trainee_already_marked_training_date(trainee=trainee, training_date=today_date):
             self.logger.debug('Trainee already reported today about training status')
-            bot.send_message(chat_id=update.message.chat_id,
-                             reply_to_message_id=update.message.message_id,
-                             text=self.ALREADY_REPORTED_TRAINING_STATUS_MSG)
+            update.message.reply_text(quote=True, text=self.ALREADY_REPORTED_TRAINING_STATUS_MSG)
         else:
-            bot.send_message(chat_id=update.message.chat_id,
-                             reply_to_message_id=update.message.message_id,
-                             text=self.TRAINED_TODAY_MSG)
+            update.message.reply_text(quote=True, text=self.TRAINED_TODAY_MSG)
             trainee.add_training_info(training_date=today_date, trained=True)
-

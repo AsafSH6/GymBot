@@ -10,31 +10,6 @@ from gym_bot_app.models import Group, Trainee
 from gym_bot_app.utils import get_bot_and_update_from_args
 
 
-def get_trainee(func):
-    """Decorator to insert trainee as argument to the given function.
-
-    Creates new Trainee if did not exist in DB.
-    Appends the trainee as last argument of the function.
-
-    Notes:
-        base func has to be used in dispatcher as handler in order to receive the bot and the update arguments.
-
-    """
-    def wrapper(*args, **kwargs):
-        bot, update = get_bot_and_update_from_args(args)
-        trainee_id = update.effective_user.id
-        trainee = Trainee.objects.get(id=trainee_id)
-
-        if trainee is None:  # new trainee.
-            trainee = Trainee.objects.create(id=trainee_id,
-                                             first_name=update.effective_user.first_name)
-
-        args_with_trainee = args + (trainee, )
-        return func(*args_with_trainee, **kwargs)
-
-    return wrapper
-
-
 def get_group(func):
     """Decorator to insert group as argument to the given function.
 
@@ -64,8 +39,8 @@ def get_trainee_and_group(func):
 
     Creates new Trainee if did not exist in DB.
     Creates new Group if did not exist in DB.
-    Appends the trainee and group as last argument of the function.
     Adds the trainee to the group if it was not part of it.
+    Appends the trainee and group as last argument of the function.
 
     Example:
         @get_trainee_and_group
@@ -76,15 +51,22 @@ def get_trainee_and_group(func):
         func has to be used in dispatcher as handler in order to receive the bot and the update arguments.
 
     """
-    @get_trainee
     @get_group
     def wrapper(*args, **kwargs):
-        trainee, group = args[-2:]
+        bot, update = get_bot_and_update_from_args(args)
 
+        trainee_id = update.effective_user.id
+        trainee = Trainee.objects.get(id=trainee_id)
+        if trainee is None:  # new trainee.
+            trainee = Trainee.objects.create(id=trainee_id,
+                                             first_name=update.effective_user.first_name)
+
+        group = args[-1]
         if trainee not in group.trainees:
             group.add_trainee(new_trainee=trainee)
 
-        return func(*args, **kwargs)
+        args_with_trainee_and_group = args[:-1] + (trainee, group)
+        return func(*args_with_trainee_and_group, **kwargs)
 
     return wrapper
 

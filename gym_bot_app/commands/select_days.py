@@ -6,7 +6,7 @@ from telegram.ext import CallbackQueryHandler
 
 from gym_bot_app.commands import Command
 from gym_bot_app.keyboards import trainee_select_days_inline_keyboard
-from gym_bot_app.decorators import get_trainee, get_trainee_and_group
+from gym_bot_app.decorators import get_trainee_and_group
 
 
 class SelectDaysCommand(Command):
@@ -29,17 +29,19 @@ class SelectDaysCommand(Command):
                                  callback=self.selected_day_callback_query),  # selected training day
         )
 
-    @get_trainee
-    def _handler(self, bot, update, trainee):
+    @get_trainee_and_group
+    def _handler(self, bot, update, trainee, group):
         """Override method to handle select days command.
 
         Generate keyboard to select or unselect training days.
 
         """
-        self.logger.info('Select days command with %s', trainee)
+        self.logger.info('Select days command with %s in %s', trainee, group)
 
         keyboard = self.get_select_days_keyboard(trainee=trainee)
-        update.message.reply_text(self.SELECT_DAYS_MSG, reply_markup=keyboard)
+        update.message.reply_text(quote=True,
+                                  text=self.SELECT_DAYS_MSG,
+                                  reply_markup=keyboard)
 
     @classmethod
     def get_select_days_keyboard(cls, trainee):
@@ -54,15 +56,15 @@ class SelectDaysCommand(Command):
         return trainee_select_days_inline_keyboard(trainee=trainee,
                                                    callback_identifier=cls.SELECT_DAYS_QUERY_IDENTIFIER)
 
-    @get_trainee
-    def selected_day_callback_query(self, bot, update, trainee):
+    @get_trainee_and_group
+    def selected_day_callback_query(self, bot, update, trainee, group):
         """Response handler of select days command.
 
         In case day was not selected before- mark it as selected.
         In case day was selected before- unselect it.
 
         """
-        self.logger.info('Selected day callback query with %s', trainee)
+        self.logger.info('Selected day callback query with %s in %s', trainee, group)
 
         query = update.callback_query
         _, trainee_id, selected_day = query.data.split()

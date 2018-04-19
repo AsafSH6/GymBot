@@ -36,8 +36,7 @@ class AllTrainingTraineesCommand(Command):
                                                                           day_name=day.name)
             days_and_trainees.append(training_trainees)
 
-        bot.send_message(chat_id=update.message.chat_id,
-                         text='\n'.join(days_and_trainees))
+        update.message.reply_text(text='\n'.join(days_and_trainees))
 
     def _get_msg_of_training_trainees_in_day(self, trainees_in_day, day_name):
         """Get message of the training trainees in the given day.
