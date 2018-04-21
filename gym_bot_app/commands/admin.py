@@ -57,6 +57,7 @@ class AdminCommand(Command):
             update.message.reply_text(quote=True, text=self.SUCCEEDED_TO_RUN_COMMAND_MSG)
         except (AttributeError, KeyError) as e:
             self.logger.error('Failed to execute task via admin with args %s, exception %s', args, e)
+            update.message.reply_text(quote=True, text=self.FAILED_TO_RUN_COMMAND_MSG)
 
     def start(self, *args, **kwargs):
         """Override method to update kwargs in order to request to pass args in command handler."""
