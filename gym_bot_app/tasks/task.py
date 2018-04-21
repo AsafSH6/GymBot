@@ -27,7 +27,7 @@ class Task(object):
         """
         raise NotImplementedError('Not implemented start time method.')
 
-    def _execute(self, *args, **kwargs):
+    def execute(self, *args, **kwargs):
         """Task execution implementation.
 
         Will be used once it reached the start time.
@@ -51,7 +51,7 @@ class Task(object):
             raise RuntimeError('%s start time already passed' % self.__class__.__name__)
 
         threading.Timer(start_time,
-                        self._execute,
+                        self.execute,
                         args=args,
                         kwargs=kwargs).start()
         self.logger.info('Targeted task %s to run in %s seconds', self.__class__.__name__, start_time)

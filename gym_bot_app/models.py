@@ -173,3 +173,27 @@ class Group(Document):
 
     def __iter__(self):
         return iter(self.trainees)
+
+
+class Admin(Document):
+    id = StringField(required=True, primary_key=True)
+
+    class AdminQuerySet(ExtendedQuerySet):
+        def create(self, id, trainees=[]):
+            return super(Admin.AdminQuerySet, self).create(id=unicode(id))
+
+        def is_admin(self, id):
+            return bool(self.get(id=id))
+
+    meta = {
+        'queryset_class': AdminQuerySet,
+    }
+
+    def __repr__(self):
+        return '<Admin {id}>'.format(id=self.id)
+
+    def __str__(self):
+        return repr(self)
+
+    def __unicode__(self):
+        return repr(self)

@@ -39,7 +39,7 @@ class NewWeekSelectDaysTask(Task):
 
     @repeats(every_seconds=timedelta(weeks=1).total_seconds())
     @run_for_all_groups
-    def _execute(self, group):
+    def execute(self, group):
         """Override method to execute new week select days task.
 
         Unselect all training days for trainees in group and sends keyboard to select

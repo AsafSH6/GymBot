@@ -25,7 +25,7 @@ class GoToGymTask(Task):
 
     @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
-    def _execute(self, group):
+    def execute(self, group):
         """Override method to execute go to gym task.
 
         Sends go to gym message with the trainees of today to the given group chat.

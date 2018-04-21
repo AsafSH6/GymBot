@@ -6,7 +6,8 @@ import os
 
 from telegram.ext import Updater
 
-from gym_bot_app.commands import (MyDaysCommand,
+from gym_bot_app.commands import (AdminCommand,
+                                  MyDaysCommand,
                                   TrainedCommand,
                                   SelectDaysCommand,
                                   AllTrainingTraineesCommand)
@@ -33,6 +34,7 @@ def run_gym_bot(token, logger):
     NewWeekSelectDaysTask(updater=updater, logger=logger).start()
 
     """ Commands """
+    AdminCommand(updater=updater, logger=logger).start()
     MyDaysCommand(updater=updater, logger=logger).start()
     SelectDaysCommand(updater=updater, logger=logger).start()
     TrainedCommand(updater=updater, logger=logger).start()
