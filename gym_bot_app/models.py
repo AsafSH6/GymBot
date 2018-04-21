@@ -179,7 +179,7 @@ class Admin(Document):
     id = StringField(required=True, primary_key=True)
 
     class AdminQuerySet(ExtendedQuerySet):
-        def create(self, id, trainees=[]):
+        def create(self, id):
             return super(Admin.AdminQuerySet, self).create(id=unicode(id))
 
         def is_admin(self, id):
