@@ -24,6 +24,7 @@ class AdminCommand(Command):
     NOT_ADMIN_MSG = 'שתוק'
     SUCCEEDED_TO_RUN_COMMAND_MSG = 'בוצע'
     FAILED_TO_RUN_COMMAND_MSG = 'נכשל'
+    SOMETHING_WENT_WRONG_MSG = 'exception'
 
     TASKS = {
         'go_to_gym': GoToGymTask,
@@ -55,9 +56,13 @@ class AdminCommand(Command):
             task(updater=self.updater, logger=self.logger).execute()
             self.logger.debug('Finished to execute %s via admin command', parsed_args.task_name)
             update.message.reply_text(quote=True, text=self.SUCCEEDED_TO_RUN_COMMAND_MSG)
-        except (AttributeError, KeyError) as e:
-            self.logger.error('Failed to execute task via admin with args %s, exception %s', args, e)
+        except (AttributeError, KeyError, SystemExit) as e:
+            self.logger.error('Failed to execute task via admin due to wrong usage with args %s, exception %s', args, e)
             update.message.reply_text(quote=True, text=self.FAILED_TO_RUN_COMMAND_MSG)
+        except Exception as e:
+            self.logger.error('Failed to execute task via admin with args %s, exception %s', args, e)
+            exception_msg = '{msg} {exc}'.format(msg=self.SOMETHING_WENT_WRONG_MSG, exc=e)
+            update.message.reply_text(quote=True, text=exception_msg)
 
     def start(self, *args, **kwargs):
         """Override method to update kwargs in order to request to pass args in command handler."""
