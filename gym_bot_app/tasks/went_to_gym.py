@@ -90,20 +90,30 @@ class WentToGymTask(Task):
             bot.answerCallbackQuery(text=self.ALREADY_ANSWERED_WENT_TO_GYM_QUESTION_MSG,
                                     callback_query_id=update.callback_query.id)
         else:
+            def notify_other_groups(msg):
+                other_groups = (g for g in trainee.groups if g != group)
+                for other_group in other_groups:
+                    bot.send_message(chat_id=other_group.id,
+                                     text=msg)
+
             if response == YES_RESPONSE:
                 self.logger.debug('%s answered yes', trainee.first_name)
+                msg = self.TRAINEE_WENT_TO_GYM_MSG.format(trainee=trainee.first_name)
                 bot.send_message(chat_id=group.id,
-                                 text=self.TRAINEE_WENT_TO_GYM_MSG.format(trainee=trainee.first_name))
+                                 text=msg)
                 bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,
                                         callback_query_id=update.callback_query.id)
                 trainee.add_training_info(training_date=question_date, trained=True)
+                notify_other_groups(msg)
             else:
                 self.logger.debug('%s answered no', trainee.first_name)
+                msg = self.TRAINEE_DIDNT_GO_TO_GYM_MSG.format(trainee=trainee.first_name)
                 bot.send_message(chat_id=group.id,
                                  text=self.TRAINEE_DIDNT_GO_TO_GYM_MSG.format(trainee=trainee.first_name))
                 bot.answerCallbackQuery(text=THUMBS_DOWN_EMOJI,
                                         callback_query_id=update.callback_query.id)
                 trainee.add_training_info(training_date=question_date, trained=False)
+                notify_other_groups(msg)
 
     def _get_went_to_gym_msg(self, trainees):
         """Generate went to gym message based on the given trainees.

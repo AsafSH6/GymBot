@@ -104,6 +104,10 @@ class Trainee(Document):
                                               date__gte=training_date,
                                               date__lt=next_day)
 
+    @property
+    def groups(self):
+        return Group.objects.filter(trainees__contains=self)
+
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,
                                                     first_name=self.first_name)

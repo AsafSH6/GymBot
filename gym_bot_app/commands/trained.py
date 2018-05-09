@@ -17,6 +17,7 @@ class TrainedCommand(Command):
     """
     DEFAULT_COMMAND_NAME = 'trained'
     TRAINED_TODAY_MSG = 'שור עולם'
+    TRAINED_TODAY_MSG_TO_OTHER_GROUPS = 'השור עולם התאמן היום {trainee}'
     ALREADY_REPORTED_TRAINING_STATUS_MSG = 'כבר אמרת שהתאמנת היום יא בוט {}'.format(FACEPALMING_EMOJI)
 
     def __init__(self, *args, **kwargs):
@@ -38,3 +39,8 @@ class TrainedCommand(Command):
         else:
             update.message.reply_text(quote=True, text=self.TRAINED_TODAY_MSG)
             trainee.add_training_info(training_date=today_date, trained=True)
+
+            other_groups = (g for g in trainee.groups if g != group)
+            for other_group in other_groups:
+                bot.send_message(chat_id=other_group.id,
+                                 text=self.TRAINED_TODAY_MSG_TO_OTHER_GROUPS.format(trainee=trainee.first_name))

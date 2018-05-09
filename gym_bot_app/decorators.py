@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import logging
+import functools
 import threading
 
 from telegram.error import TimedOut
@@ -20,6 +21,7 @@ def get_group(func):
         func has to be used in dispatcher as handler in order to receive the bot and the update arguments.
 
     """
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         bot, update = get_bot_and_update_from_args(args)
         group_id = update.message.chat_id if update.message else update.callback_query.message.chat_id
@@ -52,6 +54,7 @@ def get_trainee_and_group(func):
 
     """
     @get_group
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         bot, update = get_bot_and_update_from_args(args)
 
@@ -79,6 +82,7 @@ def repeats(every_seconds):
 
     """
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             threading.Timer(every_seconds,
                             wrapper,
@@ -101,19 +105,21 @@ def run_for_all_groups(func):
             ...
 
     """
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         logger = logging.getLogger(func.__module__)
+        print Group.objects
         for group in Group.objects:
             try:
                 args_with_group = args + (group, )
                 func(*args_with_group, **kwargs)
             except TimedOut:
-                logger.error('Timeout occurred in class %s with execution func %s',
-                             func.im_class.__name__,
+                logger.error('Timeout occurred in module %s with execution func %s',
+                             func.__module__,
                              func.func_name)
             except Exception:
-                logger.error('Exception occurred in class %s with execution func %s',
-                             func.im_class.__name__,
+                logger.error('Exception occurred in module %s with execution func %s',
+                             func.__module__,
                              func.func_name)
 
     return wrapper
