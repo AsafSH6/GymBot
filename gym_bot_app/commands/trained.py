@@ -28,6 +28,7 @@ class TrainedCommand(Command):
         """Override method to handle trained command.
 
         Creates training day info of today.
+        Mark the trained day as selected.
 
         """
         self.logger.info('Trained command with %s in %s', trainee, group)
@@ -38,9 +39,15 @@ class TrainedCommand(Command):
             update.message.reply_text(quote=True, text=self.ALREADY_REPORTED_TRAINING_STATUS_MSG)
         else:
             update.message.reply_text(quote=True, text=self.TRAINED_TODAY_MSG)
-            trainee.add_training_info(training_date=today_date, trained=True)
 
+            trainee.add_training_info(training_date=today_date, trained=True)
+            today_training_day = trainee.training_days.get(name=today_date.strftime('%A'))
+            if not today_training_day.selected:  # mark today as selected if it was not selected before
+                today_training_day.selected = True
+                trainee.save()
+
+            trained_today_msg_to_other_groups = self.TRAINED_TODAY_MSG_TO_OTHER_GROUPS.format(trainee=trainee.first_name)
             other_groups = (g for g in trainee.groups if g != group)
             for other_group in other_groups:
                 bot.send_message(chat_id=other_group.id,
-                                 text=self.TRAINED_TODAY_MSG_TO_OTHER_GROUPS.format(trainee=trainee.first_name))
+                                 text=trained_today_msg_to_other_groups)
