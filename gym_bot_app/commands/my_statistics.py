@@ -39,5 +39,5 @@ class MyStatistics(Command):
                                   text=self.TRAINEE_STATISTICS_MSG.format(
                                       trained_days=trained_days,
                                       missed_training_days=missed_training_days,
-                                      percentage=(int(100. /(missed_training_days + trained_days) * trained_days))))
+                                      percentage=(int((100.0 / (missed_training_days + trained_days)) * trained_days))))
 
