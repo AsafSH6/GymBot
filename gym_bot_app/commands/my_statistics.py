@@ -15,10 +15,10 @@ class MyStatistics(Command):
     """
     DEFAULT_COMMAND_NAME = 'my_statistics'
     TRAINEE_STATISTICS_MSG = textwrap.dedent('''
-    Total number of days you trained: {trained_days}
-    Total number of days you were a loser: {missed_training_days}
-    Percentage: {percentage}%
-    ''')
+        מספר הימים שהתאמנת בהם: {trained_days}
+        מספר הימים שהיית אפס הוא: {missed_training_days}
+        אחוז שור עולמיות: {percentage}%
+        ''')
 
     def __init__(self, *args, **kwargs):
         super(MyStatistics, self).__init__(*args, **kwargs)
@@ -30,7 +30,7 @@ class MyStatistics(Command):
         Checks the trained days of the requested trainee and sends it back to the chat.
 
         """
-        self.logger.info('My days command with %s in %s', trainee, group)
+        self.logger.info('My statistics command with %s in %s', trainee, group)
 
         training_days_info = TrainingDayInfo.objects.filter(trainee=trainee)
         trained_days = training_days_info.filter(trained=True).count()
