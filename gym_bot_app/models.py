@@ -104,6 +104,52 @@ class Trainee(Document):
                                               date__gte=training_date,
                                               date__lt=next_day)
 
+    def get_training_statistics(self):
+        """Trainee training statistics.
+
+        Calculate training statistics based on the TrainingDaysInfo of the trainee.
+
+        Returns.
+            int. number of days trainee went to the gym.
+            int. number of days trainee did not go to the gym although it marked as training day.
+            int. percentage of actually going to the gym vs missing days.
+            float. average number of training days per week.
+        """
+        training_days_info = TrainingDayInfo.objects.filter(trainee=self.pk).order_by('date')
+        trained_days = training_days_info.filter(trained=True)
+        trained_days_count = trained_days.count()
+        missed_training_days_count = training_days_info.filter(trained=False).count()
+
+        if training_days_info:
+            training_percentage = int(round((100.0 / (missed_training_days_count + trained_days_count) * trained_days_count)))
+        else:
+            training_percentage = 0
+
+        today = datetime.today()
+        first_day_of_current_week = today - timedelta(days=today.weekday())
+        trained_days_without_last_week = trained_days.filter(date__lt=first_day_of_current_week)
+
+        first_trained_day = trained_days_without_last_week.first()
+        if first_trained_day:
+            first_day_of_week = first_trained_day.date - timedelta(days=first_trained_day.date.weekday())
+            num_of_trained_days_per_week = [0]
+            for trained_day in trained_days_without_last_week:
+                if (trained_day.date - first_day_of_week).days >= 7:  # Start new week.
+                    first_day_of_week = trained_day.date - timedelta(days=trained_day.date.weekday())
+                    num_of_trained_days_per_week.append(0)
+
+                # Increase number of trained days of the current week.
+                num_of_trained_days_per_week[-1] += 1
+
+            average_training_days_per_week = float(sum(num_of_trained_days_per_week)) / len(num_of_trained_days_per_week)
+        else:
+            average_training_days_per_week = 0
+
+        return (trained_days_count,
+                missed_training_days_count,
+                training_percentage,
+                average_training_days_per_week)
+
     @property
     def groups(self):
         return Group.objects.filter(trainees__contains=self)
