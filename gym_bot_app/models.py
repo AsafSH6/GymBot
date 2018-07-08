@@ -141,7 +141,8 @@ class Trainee(Document):
                 # Increase number of trained days of the current week.
                 num_of_trained_days_per_week[-1] += 1
 
-            average_training_days_per_week = float(sum(num_of_trained_days_per_week)) / len(num_of_trained_days_per_week)
+            num_of_weeks_since_started_to_train = float((first_day_of_current_week - first_trained_day.date).days) / 7
+            average_training_days_per_week = float(sum(num_of_trained_days_per_week)) / round(num_of_weeks_since_started_to_train)
         else:
             average_training_days_per_week = 0
 

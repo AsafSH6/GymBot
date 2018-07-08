@@ -41,6 +41,6 @@ class MyStatistics(Command):
                                       trained_days=trained_days,
                                       missed_training_days=missed_training_days,
                                       percentage=training_percentage,
-                                      num_of_training_days_per_week=num_of_training_days_per_week
+                                      num_of_training_days_per_week='{:.2f}'.format(num_of_training_days_per_week)
                                   ))
 
