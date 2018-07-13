@@ -104,6 +104,53 @@ class Trainee(Document):
                                               date__gte=training_date,
                                               date__lt=next_day)
 
+    @staticmethod
+    def _calculate_training_percentage(num_of_trained_days, num_missed_training_days):
+        """Calculate the training percentage based on the number of trained days.
+
+        Args:
+             num_of_trained_days(int): number of days the trainee trained.
+             num_missed_training_days(int): number of days trainee commit to workout but did not.
+
+        Returns:
+            int. training percentage.
+        """
+        if (num_of_trained_days + num_missed_training_days) > 0:
+            training_percentage = (100.0 / (num_of_trained_days + num_missed_training_days) * num_of_trained_days)
+            return int(round(training_percentage))
+        else:
+            return 0
+
+    @staticmethod
+    def _calculate_average_training_days_per_week(trained_days):
+        """Calculate the average training days per week.
+
+        Args:
+             trained_days(list<TrainingDayInfo>): all training days info when trainee did workout.
+
+        Returns:
+            float. average training days per week.
+        """
+        today = datetime.today()
+        first_day_of_current_week = today - timedelta(days=today.weekday())
+        trained_days_without_last_week = trained_days.filter(date__lt=first_day_of_current_week)
+        first_trained_day = trained_days_without_last_week.first()
+        if first_trained_day:
+            first_day_of_week = first_trained_day.date - timedelta(days=first_trained_day.date.weekday())
+            num_of_trained_days_per_week = [0]
+            for trained_day in trained_days_without_last_week:
+                if (trained_day.date - first_day_of_week).days >= 7:  # Start new week.
+                    first_day_of_week = trained_day.date - timedelta(days=trained_day.date.weekday())
+                    num_of_trained_days_per_week.append(0)
+
+                # Increase number of trained days of the current week.
+                num_of_trained_days_per_week[-1] += 1
+
+            num_of_weeks_since_started_to_train = float((first_day_of_current_week - first_trained_day.date).days) / 7
+            return float(sum(num_of_trained_days_per_week)) / round(num_of_weeks_since_started_to_train)
+        else:
+            return 0.
+
     def get_training_statistics(self):
         """Trainee training statistics.
 
@@ -119,32 +166,9 @@ class Trainee(Document):
         trained_days = training_days_info.filter(trained=True)
         trained_days_count = trained_days.count()
         missed_training_days_count = training_days_info.filter(trained=False).count()
-
-        if training_days_info:
-            training_percentage = int(round((100.0 / (missed_training_days_count + trained_days_count) * trained_days_count)))
-        else:
-            training_percentage = 0
-
-        today = datetime.today()
-        first_day_of_current_week = today - timedelta(days=today.weekday())
-        trained_days_without_last_week = trained_days.filter(date__lt=first_day_of_current_week)
-
-        first_trained_day = trained_days_without_last_week.first()
-        if first_trained_day:
-            first_day_of_week = first_trained_day.date - timedelta(days=first_trained_day.date.weekday())
-            num_of_trained_days_per_week = [0]
-            for trained_day in trained_days_without_last_week:
-                if (trained_day.date - first_day_of_week).days >= 7:  # Start new week.
-                    first_day_of_week = trained_day.date - timedelta(days=trained_day.date.weekday())
-                    num_of_trained_days_per_week.append(0)
-
-                # Increase number of trained days of the current week.
-                num_of_trained_days_per_week[-1] += 1
-
-            num_of_weeks_since_started_to_train = float((first_day_of_current_week - first_trained_day.date).days) / 7
-            average_training_days_per_week = float(sum(num_of_trained_days_per_week)) / round(num_of_weeks_since_started_to_train)
-        else:
-            average_training_days_per_week = 0
+        training_percentage = self._calculate_training_percentage(num_of_trained_days=trained_days_count,
+                                                                  num_missed_training_days=missed_training_days_count)
+        average_training_days_per_week = self._calculate_average_training_days_per_week(trained_days=trained_days)
 
         return (trained_days_count,
                 missed_training_days_count,
