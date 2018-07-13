@@ -7,10 +7,10 @@ import os
 from telegram.ext import Updater
 
 from gym_bot_app.commands import (AdminCommand,
-                                  MyStatistics,
                                   MyDaysCommand,
                                   TrainedCommand,
                                   SelectDaysCommand,
+                                  MyStatisticsCommand,
                                   AllTrainingTraineesCommand)
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
@@ -37,9 +37,9 @@ def run_gym_bot(token, logger):
     """ Commands """
     AdminCommand(updater=updater, logger=logger).start()
     MyDaysCommand(updater=updater, logger=logger).start()
-    MyStatistics(updater=updater, logger=logger).start()
-    SelectDaysCommand(updater=updater, logger=logger).start()
     TrainedCommand(updater=updater, logger=logger).start()
+    SelectDaysCommand(updater=updater, logger=logger).start()
+    MyStatisticsCommand(updater=updater, logger=logger).start()
     AllTrainingTraineesCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)

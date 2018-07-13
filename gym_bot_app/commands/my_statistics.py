@@ -7,7 +7,7 @@ from gym_bot_app.models import TrainingDayInfo
 import textwrap
 
 
-class MyStatistics(Command):
+class MyStatisticsCommand(Command):
     """Telegram gym bot my statistics command.
 
     Sends training statistics of the requested trainee.
