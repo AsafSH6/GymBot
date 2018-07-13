@@ -18,6 +18,7 @@ class MyStatisticsCommand(Command):
         מספר הימים שהתאמנת בהם: {trained_days}
         מספר הימים שהיית אפס הוא: {missed_training_days}
         אחוז שור עולמיות: {percentage}%
+        מספר ממוצע של ימי אימון בשבוע: {num_of_training_days_per_week}
         ''')
 
     def __init__(self, *args, **kwargs):
@@ -32,12 +33,14 @@ class MyStatisticsCommand(Command):
         """
         self.logger.info('My statistics command with %s in %s', trainee, group)
 
-        training_days_info = TrainingDayInfo.objects.filter(trainee=trainee)
-        trained_days = training_days_info.filter(trained=True).count()
-        missed_training_days = training_days_info.filter(trained=False).count()
+        (trained_days, missed_training_days,
+         training_percentage, num_of_training_days_per_week) = trainee.get_training_statistics()
+
         update.message.reply_text(quote=True,
                                   text=self.TRAINEE_STATISTICS_MSG.format(
                                       trained_days=trained_days,
                                       missed_training_days=missed_training_days,
-                                      percentage=(int((100.0 / (missed_training_days + trained_days)) * trained_days))))
+                                      percentage=training_percentage,
+                                      num_of_training_days_per_week='{:.2f}'.format(num_of_training_days_per_week)
+                                  ))
 
