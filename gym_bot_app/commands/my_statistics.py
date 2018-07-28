@@ -22,7 +22,7 @@ class MyStatisticsCommand(Command):
         ''')
 
     def __init__(self, *args, **kwargs):
-        super(MyStatistics, self).__init__(*args, **kwargs)
+        super(MyStatisticsCommand, self).__init__(*args, **kwargs)
 
     @get_trainee_and_group
     def _handler(self, bot, update, trainee, group):
