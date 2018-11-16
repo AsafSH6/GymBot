@@ -1,6 +1,7 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
+from gym_bot_app import KISSING_HEART_EMOJI
 from gym_bot_app.commands import Command
 from gym_bot_app.decorators import get_trainee_and_group
 
@@ -14,7 +15,7 @@ class SetCreatureCommand(Command):
     """
     DEFAULT_COMMAND_NAME = 'set_creature'
     DID_NOT_PROVIDE_CREATURE_MSG = 'לא בחרת איזה יצור אתה רוצה להיות יא בוט'
-    SUCCEEDED_TO_SET_CREATURE_MSG = 'מעכשיו אתה {creature} ובוט 3>'
+    SUCCEEDED_TO_SET_CREATURE_MSG = 'מעכשיו אתה {{creature}} ובוט {emoji}'.format(emoji=KISSING_HEART_EMOJI)
 
     def __init__(self, *args, **kwargs):
         super(SetCreatureCommand, self).__init__(pass_args=True, *args, **kwargs)
