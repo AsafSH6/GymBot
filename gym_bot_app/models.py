@@ -19,7 +19,7 @@ from gym_bot_app import DAYS_NAME
 from gym_bot_app.query_sets import ExtendedQuerySet
 
 
-DEFAULT_TRAINEE_CREATURE = 'שור'
+DEFAULT_TRAINEE_CREATURE = 'שור עולם'
 
 
 class Day(EmbeddedDocument):
