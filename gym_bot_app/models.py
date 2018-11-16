@@ -11,11 +11,15 @@ from mongoengine import (Document,
                          EmbeddedDocument,
                          LazyReferenceField,
                          CachedReferenceField,
+                         EmbeddedDocumentField,
                          EmbeddedDocumentListField,
                          )
 
 from gym_bot_app import DAYS_NAME
 from gym_bot_app.query_sets import ExtendedQuerySet
+
+
+DEFAULT_TRAINEE_CREATURE = 'שור'
 
 
 class Day(EmbeddedDocument):
@@ -38,10 +42,16 @@ class Day(EmbeddedDocument):
         return repr(self)
 
 
+class PersonalConfigurations(EmbeddedDocument):
+    creature = StringField(default=DEFAULT_TRAINEE_CREATURE)
+
+
 class Trainee(Document):
     id = StringField(required=True, primary_key=True)
     first_name = StringField(required=True)
     training_days = EmbeddedDocumentListField(Day)
+    personal_configurations = EmbeddedDocumentField(PersonalConfigurations,
+                                                    default=PersonalConfigurations)
 
     class TraineeQuerySet(ExtendedQuerySet):
         def create(self, id, first_name):
@@ -218,7 +228,10 @@ class Group(Document):
     trainees = ListField(CachedReferenceField(Trainee, auto_sync=True))
 
     class GroupQuerySet(ExtendedQuerySet):
-        def create(self, id, trainees=[]):
+        def create(self, id, trainees=None):
+            if not trainees:
+                trainees = []
+
             return super(Group.GroupQuerySet, self).create(id=unicode(id),
                                                            trainees=trainees)
 

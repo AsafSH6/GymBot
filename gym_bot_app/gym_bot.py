@@ -10,8 +10,10 @@ from gym_bot_app.commands import (AdminCommand,
                                   MyDaysCommand,
                                   TrainedCommand,
                                   SelectDaysCommand,
+                                  SetCreatureCommand,
                                   MyStatisticsCommand,
                                   AllTrainingTraineesCommand)
+
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
                                NewWeekSelectDaysTask)
@@ -39,6 +41,7 @@ def run_gym_bot(token, logger):
     MyDaysCommand(updater=updater, logger=logger).start()
     TrainedCommand(updater=updater, logger=logger).start()
     SelectDaysCommand(updater=updater, logger=logger).start()
+    SetCreatureCommand(updater=updater, logger=logger).start()
     MyStatisticsCommand(updater=updater, logger=logger).start()
     AllTrainingTraineesCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
 

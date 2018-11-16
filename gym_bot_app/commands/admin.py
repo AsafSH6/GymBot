@@ -33,7 +33,7 @@ class AdminCommand(Command):
     }
 
     def __init__(self, *args, **kwargs):
-        super(AdminCommand, self).__init__(*args, **kwargs)
+        super(AdminCommand, self).__init__(pass_args=True, *args, **kwargs)
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('--run-task', dest='task_name')
 
@@ -56,16 +56,10 @@ class AdminCommand(Command):
             task(updater=self.updater, logger=self.logger).execute()
             self.logger.debug('Finished to execute %s via admin command', parsed_args.task_name)
             update.message.reply_text(quote=True, text=self.SUCCEEDED_TO_RUN_COMMAND_MSG)
-        except (AttributeError, KeyError, SystemExit) as e:
+        except (AttributeError, KeyError, SystemExit) as e:  # argparse raises SystemExit if something went wrong.
             self.logger.error('Failed to execute task via admin due to wrong usage with args %s, exception %s', args, e)
             update.message.reply_text(quote=True, text=self.FAILED_TO_RUN_COMMAND_MSG)
         except Exception as e:
             self.logger.error('Failed to execute task via admin with args %s, exception %s', args, e)
             exception_msg = '{msg} {exc}'.format(msg=self.SOMETHING_WENT_WRONG_MSG, exc=e)
             update.message.reply_text(quote=True, text=exception_msg)
-
-    def start(self, *args, **kwargs):
-        """Override method to update kwargs in order to request to pass args in command handler."""
-        kwargs['pass_args'] = True
-        return super(AdminCommand, self).start(*args, **kwargs)
-

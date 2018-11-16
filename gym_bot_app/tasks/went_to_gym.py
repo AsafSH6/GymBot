@@ -26,7 +26,7 @@ class WentToGymTask(Task):
     ALREADY_ANSWERED_WENT_TO_GYM_QUESTION_MSG = 'כבר ענית על השאלה יא בוט {}'.format(FACEPALMING_EMOJI)
     WENT_TO_GYM_PLURAL_MSG = 'הלכתם היום לחדכ יא בוטים? {trainees}'
     WENT_TO_GYM_INDIVIDUAL_MSG = 'הלכת היום לחדכ יא בוט? {trainees}'
-    TRAINEE_WENT_TO_GYM_MSG = 'כל הכבוד {trainee} אלוף!'
+    TRAINEE_WENT_TO_GYM_MSG = 'כל הכבוד {trainee} יא {creature}!'
     TRAINEE_DIDNT_GO_TO_GYM_MSG = 'אפס מאופס {trainee}'
 
     def __init__(self, target_time=None, *args, **kwargs):
@@ -98,7 +98,8 @@ class WentToGymTask(Task):
 
             if response == YES_RESPONSE:
                 self.logger.debug('%s answered yes', trainee.first_name)
-                msg = self.TRAINEE_WENT_TO_GYM_MSG.format(trainee=trainee.first_name)
+                msg = self.TRAINEE_WENT_TO_GYM_MSG.format(trainee=trainee.first_name,
+                                                          creature=trainee.personal_configurations.creature)
                 bot.send_message(chat_id=group.id,
                                  text=msg)
                 bot.answerCallbackQuery(text=THUMBS_UP_EMOJI,

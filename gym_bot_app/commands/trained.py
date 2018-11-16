@@ -16,8 +16,8 @@ class TrainedCommand(Command):
 
     """
     DEFAULT_COMMAND_NAME = 'trained'
-    TRAINED_TODAY_MSG = 'שור עולם'
-    TRAINED_TODAY_MSG_TO_OTHER_GROUPS = 'השור עולם התאמן היום {trainee}'
+    TRAINED_TODAY_MSG = '{creature}!'
+    TRAINED_TODAY_MSG_TO_OTHER_GROUPS = '{trainee} ה{creature} התאמן היום'
     ALREADY_REPORTED_TRAINING_STATUS_MSG = 'כבר אמרת שהתאמנת היום יא בוט {}'.format(FACEPALMING_EMOJI)
 
     def __init__(self, *args, **kwargs):
@@ -38,7 +38,8 @@ class TrainedCommand(Command):
             self.logger.debug('Trainee already reported today about training status')
             update.message.reply_text(quote=True, text=self.ALREADY_REPORTED_TRAINING_STATUS_MSG)
         else:
-            update.message.reply_text(quote=True, text=self.TRAINED_TODAY_MSG)
+            msg = self.TRAINED_TODAY_MSG.format(creature=trainee.personal_configurations.creature)
+            update.message.reply_text(quote=True, text=msg)
 
             trainee.add_training_info(training_date=today_date, trained=True)
             today_training_day = trainee.training_days.get(name=today_date.strftime('%A'))
@@ -46,7 +47,9 @@ class TrainedCommand(Command):
                 today_training_day.selected = True
                 trainee.save()
 
-            trained_today_msg_to_other_groups = self.TRAINED_TODAY_MSG_TO_OTHER_GROUPS.format(trainee=trainee.first_name)
+            trained_today_msg_to_other_groups = self.TRAINED_TODAY_MSG_TO_OTHER_GROUPS.format(
+                trainee=trainee.first_name,
+                creature=trainee.personal_configurations.creature)
             other_groups = (g for g in trainee.groups if g != group)
             for other_group in other_groups:
                 bot.send_message(chat_id=other_group.id,

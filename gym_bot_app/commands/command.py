@@ -15,9 +15,10 @@ class Command(object):
     """
     DEFAULT_COMMAND_NAME = NotImplemented
 
-    def __init__(self, updater, logger):
+    def __init__(self, updater, logger, pass_args=False):
         self.updater = updater
         self.logger = logger
+        self.pass_args = pass_args
 
     def _handler(self, bot, update, *args, **kwargs):
         """Handler of the command.
@@ -39,9 +40,10 @@ class Command(object):
             kwargs(dict): will be passed to the dispatcher handler.
 
         """
-        command_name = command_name or self.DEFAULT_COMMAND_NAME
+        command_name = command_name or self.DEFAULT_COMMAND_NAME  # Allows other commands to inherit and override the default name.
         self.updater.dispatcher.add_handler(CommandHandler(command=command_name,
                                                            callback=self._handler,
+                                                           pass_args=self.pass_args,
                                                            *args, **kwargs))
         self.logger.info("Set %s with command name '%s'", self.__class__.__name__, command_name)
 
