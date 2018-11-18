@@ -14,7 +14,7 @@ class SetCreatureCommand(Command):
 
     """
     DEFAULT_COMMAND_NAME = 'set_creature'
-    DID_NOT_PROVIDE_CREATURE_MSG = 'לא בחרת איזה יצור אתה רוצה להיות יא בוט'
+    DID_NOT_PROVIDE_CREATURE_MSG = 'לא בחרת איזה יצור אתה רוצה להיות יא בוט\n /set_creature שור עולם'
     SUCCEEDED_TO_SET_CREATURE_MSG = 'מעכשיו אתה {{creature}} ובוט {emoji}'.format(emoji=KISSING_HEART_EMOJI)
 
     def __init__(self, *args, **kwargs):
