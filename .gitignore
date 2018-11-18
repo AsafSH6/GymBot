@@ -1,5 +1,5 @@
 .idea/
-.gym_bot_app/backups/
+backups/
 *.pyc
 *.log
 t.py
