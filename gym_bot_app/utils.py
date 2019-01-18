@@ -98,3 +98,7 @@ def get_bot_and_update_from_args(args):
     bot = find_instance_in_args(telegram.bot.Bot, args)
     update = find_instance_in_args(telegram.update.Update, args)
     return bot, update
+
+
+def notify_leveled_up(bot, chat_id, level):
+    pass

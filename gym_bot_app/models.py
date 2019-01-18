@@ -1,25 +1,33 @@
 # encoding: utf-8
 from __future__ import unicode_literals
 
+import math
 from datetime import datetime, timedelta
 
-from mongoengine import (Document,
-                         ListField,
-                         StringField,
-                         BooleanField,
-                         DateTimeField,
-                         EmbeddedDocument,
-                         LazyReferenceField,
-                         CachedReferenceField,
-                         EmbeddedDocumentField,
-                         EmbeddedDocumentListField,
-                         )
+from mongoengine import (
+    Document,
+    IntField,
+    ListField,
+    StringField,
+    BooleanField,
+    DateTimeField,
+    EmbeddedDocument,
+    LazyReferenceField,
+    CachedReferenceField,
+    EmbeddedDocumentField,
+    EmbeddedDocumentListField,
+ )
 
 from gym_bot_app import DAYS_NAME
 from gym_bot_app.query_sets import ExtendedQuerySet
 
 
 DEFAULT_TRAINEE_CREATURE = 'שור עולם'
+
+
+MAX_EXP = 2147483648
+LEVELS = {level_number: math.ceil((level_number - 1) * 3.5)
+          for level_number in xrange(1, 200)}
 
 
 class Day(EmbeddedDocument):
@@ -40,6 +48,25 @@ class Day(EmbeddedDocument):
 
     def __unicode__(self):
         return repr(self)
+    
+
+class Level(EmbeddedDocument):
+    number = IntField(default=1)
+    exp = IntField(default=0)
+
+    def gain_exp(self, exp):
+        self.exp += exp
+        leveled_up = self._recalculate_level()
+        if leveled_up:
+            self.number += 1
+            self.exp = 0
+
+        self.save()
+        return leveled_up
+
+    def _recalculate_level(self):
+        required_exp_for_next_level = LEVELS.get(self.number + 1, MAX_EXP)
+        return self.exp > required_exp_for_next_level
 
 
 class PersonalConfigurations(EmbeddedDocument):
@@ -50,6 +77,7 @@ class Trainee(Document):
     id = StringField(required=True, primary_key=True)
     first_name = StringField(required=True)
     training_days = EmbeddedDocumentListField(Day)
+    level = EmbeddedDocument(Level)
     personal_configurations = EmbeddedDocumentField(PersonalConfigurations,
                                                     default=PersonalConfigurations)
 
@@ -95,9 +123,14 @@ class Trainee(Document):
         if self.get_training_info(training_date=training_date):
             raise RuntimeError('Already created training day info for today.')
 
+        # TODO: calculate here the EXP gained by this training and add it to each group.
+        gained_exp = 1
+        self.level.gain_exp(exp=gained_exp)
+
         return TrainingDayInfo.objects.create(trainee=self.pk,
                                               date=training_date,
-                                              trained=trained)
+                                              trained=trained,
+                                              gained_exp=gained_exp)
 
     def get_training_info(self, training_date):
         """Check trainee training info of given date.
@@ -204,6 +237,7 @@ class TrainingDayInfo(Document):
     trainee = LazyReferenceField(document_type=Trainee)
     date = DateTimeField(default=datetime.now)
     trained = BooleanField()
+    gained_exp = IntField(default=0)
 
     meta = {
         'indexes': [('trainee', '-date')],

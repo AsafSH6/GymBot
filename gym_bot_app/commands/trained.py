@@ -6,7 +6,7 @@ from datetime import datetime
 from gym_bot_app.commands import Command
 from gym_bot_app import FACEPALMING_EMOJI
 from gym_bot_app.decorators import get_trainee_and_group
-from gym_bot_app.utils import trainee_already_marked_training_date
+from gym_bot_app.utils import trainee_already_marked_training_date, notify_leveled_up
 
 
 class TrainedCommand(Command):
@@ -41,12 +41,18 @@ class TrainedCommand(Command):
             msg = self.TRAINED_TODAY_MSG.format(creature=trainee.personal_configurations.creature)
             update.message.reply_text(quote=True, text=msg)
 
-            trainee.add_training_info(training_date=today_date, trained=True)
+            training_info = trainee.add_training_info(training_date=today_date, trained=True)
+            leveled_up = group.level.gain_exp(exp=training_info.gained_exp)
+            if leveled_up:
+                notify_leveled_up(bot=bot, chat_id=group.id, level=group.level)
+
             today_training_day = trainee.training_days.get(name=today_date.strftime('%A'))
+
             if not today_training_day.selected:  # mark today as selected if it was not selected before
                 today_training_day.selected = True
                 trainee.save()
 
+            # Notify other groups.
             trained_today_msg_to_other_groups = self.TRAINED_TODAY_MSG_TO_OTHER_GROUPS.format(
                 trainee=trainee.first_name,
                 creature=trainee.personal_configurations.creature)
@@ -54,3 +60,6 @@ class TrainedCommand(Command):
             for other_group in other_groups:
                 bot.send_message(chat_id=other_group.id,
                                  text=trained_today_msg_to_other_groups)
+                leveled_up = other_group.level.gain_exp(exp=training_info.gained_exp)
+                if leveled_up:
+                    notify_leveled_up(bot=bot, chat_id=other_group.id, level=other_group.level)
