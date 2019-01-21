@@ -55,18 +55,51 @@ class Level(EmbeddedDocument):
     exp = IntField(default=0)
 
     def gain_exp(self, exp):
-        self.exp += exp
-        leveled_up = self._recalculate_level()
-        if leveled_up:
-            self.number += 1
-            self.exp = 0
+        """Add EXP to the level.
 
-        self.save()
+        Args:
+            exp (int): amount of gained EXP.
+
+        Returns:
+            bool. whether if leveled up by the gained exp or not.
+
+        """
+        self.exp += exp
+
+        leveled_up = False  # Whether leveled up at least once after by the gained exp.
+        should_level_up = True
+        while should_level_up:
+            should_level_up = self._should_level_up()
+
+            if should_level_up:
+                self._level_up()
+                leveled_up = True
+
         return leveled_up
 
-    def _recalculate_level(self):
-        required_exp_for_next_level = LEVELS.get(self.number + 1, MAX_EXP)
-        return self.exp > required_exp_for_next_level
+    def _level_up(self):
+        self.exp -= self.required_exp_for_next_level # Save the extra exp for the next level.
+        self.number += 1
+
+    def _should_level_up(self):
+        return self.exp >= self.required_exp_for_next_level
+
+    @property
+    def required_exp_for_next_level(self):
+        return LEVELS.get(self.number + 1, MAX_EXP)
+
+    def __repr__(self):
+        return '<Level {number} ({exp}/{next_level_exp})>'.format(
+            number=self.number,
+            exp=int(self.exp),
+            next_level_exp=int(self.required_exp_for_next_level)
+        )
+
+    def __str__(self):
+        return repr(self)
+
+    def __unicode__(self):
+        return repr(self)
 
 
 class PersonalConfigurations(EmbeddedDocument):
@@ -77,7 +110,7 @@ class Trainee(Document):
     id = StringField(required=True, primary_key=True)
     first_name = StringField(required=True)
     training_days = EmbeddedDocumentListField(Day)
-    level = EmbeddedDocument(Level)
+    level = EmbeddedDocumentField(Level, default=Level)
     personal_configurations = EmbeddedDocumentField(PersonalConfigurations,
                                                     default=PersonalConfigurations)
 
@@ -114,7 +147,9 @@ class Trainee(Document):
             trained(bool): whether trainee trained or not.
 
         Returns:
-            TrainingDayInfo. instance of the created training day info.
+            tuple.
+                TrainingDayInfo. instance of the created training day info.
+                bool. whether trainee leveled up or not.
 
         Raises:
             RuntimeError. in case trainee already have training day info in the given date.
@@ -123,14 +158,12 @@ class Trainee(Document):
         if self.get_training_info(training_date=training_date):
             raise RuntimeError('Already created training day info for today.')
 
-        # TODO: calculate here the EXP gained by this training and add it to each group.
-        gained_exp = 1
-        self.level.gain_exp(exp=gained_exp)
+        gained_exp = 2
+        leveled_up = self.level.gain_exp(exp=gained_exp)
+        self.save()
 
-        return TrainingDayInfo.objects.create(trainee=self.pk,
-                                              date=training_date,
-                                              trained=trained,
-                                              gained_exp=gained_exp)
+        training_day_info = TrainingDayInfo.objects.create(trainee=self.pk, date=training_date, trained=trained, gained_exp=gained_exp)
+        return training_day_info, leveled_up
 
     def get_training_info(self, training_date):
         """Check trainee training info of given date.
@@ -260,6 +293,7 @@ class TrainingDayInfo(Document):
 class Group(Document):
     id = StringField(required=True, primary_key=True)
     trainees = ListField(CachedReferenceField(Trainee, auto_sync=True))
+    level = EmbeddedDocumentField(Level, default=Level)
 
     class GroupQuerySet(ExtendedQuerySet):
         def create(self, id, trainees=None):
@@ -292,9 +326,6 @@ class Group(Document):
 
     def __unicode__(self):
         return repr(self)
-
-    def __iter__(self):
-        return iter(self.trainees)
 
 
 class Admin(Document):
