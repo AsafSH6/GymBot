@@ -223,7 +223,10 @@ class Trainee(Document):
                 num_of_trained_days_per_week[-1] += 1
 
             num_of_weeks_since_started_to_train = float((first_day_of_current_week - first_trained_day.date).days) / 7
-            return float(sum(num_of_trained_days_per_week)) / round(num_of_weeks_since_started_to_train)
+            if num_of_weeks_since_started_to_train == 0:  # It's the first week of training.
+                return sum(num_of_trained_days_per_week)
+            else:
+                return float(sum(num_of_trained_days_per_week)) / round(num_of_weeks_since_started_to_train)
         else:
             return 0.
 

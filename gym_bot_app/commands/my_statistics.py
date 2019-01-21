@@ -19,6 +19,7 @@ class MyStatisticsCommand(Command):
         מספר הימים שהיית אפס הוא: {missed_training_days}
         אחוז שור עולמיות: {percentage}%
         מספר ממוצע של ימי אימון בשבוע: {num_of_training_days_per_week}
+        {level}
         ''')
 
     def __init__(self, *args, **kwargs):
@@ -41,6 +42,7 @@ class MyStatisticsCommand(Command):
                                       trained_days=trained_days,
                                       missed_training_days=missed_training_days,
                                       percentage=training_percentage,
-                                      num_of_training_days_per_week='{:.2f}'.format(num_of_training_days_per_week)
+                                      num_of_training_days_per_week='{:.2f}'.format(num_of_training_days_per_week),
+                                      level=trainee.level
                                   ))
 
