@@ -4,5 +4,6 @@ from gym_bot_app.commands.select_days import SelectDaysCommand
 from gym_bot_app.commands.my_days import MyDaysCommand
 from gym_bot_app.commands.set_creature import SetCreatureCommand
 from gym_bot_app.commands.my_statistics import MyStatisticsCommand
+from gym_bot_app.commands.bot_statistics import BotStatisticsCommand
 from gym_bot_app.commands.trained import TrainedCommand
 from gym_bot_app.commands.all_training_trainees import AllTrainingTraineesCommand

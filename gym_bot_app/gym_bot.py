@@ -12,6 +12,7 @@ from gym_bot_app.commands import (AdminCommand,
                                   SelectDaysCommand,
                                   SetCreatureCommand,
                                   MyStatisticsCommand,
+                                  BotStatisticsCommand,
                                   AllTrainingTraineesCommand)
 
 from gym_bot_app.tasks import (GoToGymTask,
@@ -43,6 +44,7 @@ def run_gym_bot(token, logger):
     SelectDaysCommand(updater=updater, logger=logger).start()
     SetCreatureCommand(updater=updater, logger=logger).start()
     MyStatisticsCommand(updater=updater, logger=logger).start()
+    BotStatisticsCommand(updater=updater, logger=logger).start()
     AllTrainingTraineesCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)

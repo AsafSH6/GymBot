@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from gym_bot_app.decorators import get_trainee_and_group
 from gym_bot_app.commands import Command
-from gym_bot_app.models import TrainingDayInfo
 import textwrap
 
 
