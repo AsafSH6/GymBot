@@ -8,6 +8,7 @@ from mongoengine import (
     Document,
     IntField,
     ListField,
+    FloatField,
     StringField,
     BooleanField,
     DateTimeField,
@@ -106,6 +107,35 @@ class PersonalConfigurations(EmbeddedDocument):
     creature = StringField(default=DEFAULT_TRAINEE_CREATURE)
 
 
+class EXPEvent(Document):
+    multiplier = FloatField()
+    start_time = DateTimeField()
+    end_time = DateTimeField()
+
+    class EXPEventQuerySet(ExtendedQuerySet):
+        def get_current_exp_events(self):
+            now = datetime.now()
+
+            return self.filter(start_time__lte=now, end_time__gte=now)
+
+    meta = {
+        'queryset_class': EXPEventQuerySet,
+    }
+
+    def __repr__(self):
+        return '<EXPEvent {multiplier}x from {start_time} to {end_time}>'.format(
+            multiplier=self.multiplier,
+            start_time=self.start_time,
+            end_time=self.end_time
+        )
+
+    def __str__(self):
+        return repr(self)
+
+    def __unicode__(self):
+        return repr(self)
+
+
 class Trainee(Document):
     id = StringField(required=True, primary_key=True)
     first_name = StringField(required=True)
@@ -159,6 +189,12 @@ class Trainee(Document):
             raise RuntimeError('Already created training day info for today.')
 
         gained_exp = 2
+
+        exp_events = EXPEvent.objects.get_current_exp_events()
+        print exp_events
+        for exp_event in exp_events:
+            gained_exp *= exp_event.multiplier
+
         leveled_up = self.level.gain_exp(exp=gained_exp)
         self.save()
 
