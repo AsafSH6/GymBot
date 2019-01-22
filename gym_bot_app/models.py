@@ -191,7 +191,6 @@ class Trainee(Document):
         gained_exp = 2
 
         exp_events = EXPEvent.objects.get_current_exp_events()
-        print exp_events
         for exp_event in exp_events:
             gained_exp *= exp_event.multiplier
 
