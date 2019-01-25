@@ -26,8 +26,9 @@ class AdminCommand(Command):
     NOT_ADMIN_MSG = 'שתוק'
     SUCCEEDED_TO_RUN_COMMAND_MSG = 'בוצע'
     FAILED_TO_RUN_COMMAND_MSG = 'נכשל'
-    SOMETHING_WENT_WRONG_MSG = 'exception'
-    NEW_EXP_EVENT_CREATED = '{multiplier}X EXP from {start_datetime} to {end_datetime}'
+    SOMETHING_WENT_WRONG_MSG = 'exception: {exc}'
+    NEW_EXP_EVENT_CREATED = '{multiplier}x EXP from {start_datetime} to {end_datetime}'
+    FAILED_TO_NOTIFY_GROUP_EXP_EVENT = 'Failed to notify {group} about exp event due to exception: {exc}'
 
     TASKS = {
         'go_to_gym': GoToGymTask,
@@ -47,9 +48,10 @@ class AdminCommand(Command):
         Execute admin commands.
 
         """
-        self.logger.info('Admin command from %s with args %s', update.effective_user.id, args)
+        admin_id = update.effective_user.id
+        self.logger.info('Admin command from %s with args %s', admin_id, args)
 
-        if not Admin.objects.is_admin(update.effective_user.id):  # not an admin
+        if not Admin.objects.is_admin(admin_id):  # Not an admin
             self.logger.debug('User is not an admin')
             update.message.reply_text(quote=True, text=self.NOT_ADMIN_MSG)
             return
@@ -68,15 +70,29 @@ class AdminCommand(Command):
                     start_time=dt.datetime.strptime('{} {}'.format(start_date, start_time), self.DATETIME_FORMAT),
                     end_time=dt.datetime.strptime('{} {}'.format(end_date, end_time), self.DATETIME_FORMAT)
                 )
+                new_exp_event_msg = self.NEW_EXP_EVENT_CREATED.format(
+                    multiplier=exp_event.multiplier,
+                    start_datetime=exp_event.start_time.strftime(self.DATETIME_FORMAT),
+                    end_datetime=exp_event.end_time.strftime(self.DATETIME_FORMAT)
+                )
                 for group in Group.objects.all():
-                    bot.send_message(chat_id=group.id,
-                                     text=self.NEW_EXP_EVENT_CREATED.format(multiplier=exp_event.multiplier,
-                                                                            start_datetime=exp_event.start_time.strftime(self.DATETIME_FORMAT),
-                                                                            end_datetime=exp_event.end_time.strftime(self.DATETIME_FORMAT)))
+                    try:
+                        bot.send_message(chat_id=group.id,
+                                         text=new_exp_event_msg)
+                    except Exception as e:
+                        msg = self.FAILED_TO_NOTIFY_GROUP_EXP_EVENT.format(group=group, exc=e)
+                        self.logger.error(msg)
+                        bot.send_message(chat_id=admin_id,
+                                         text=msg)
+            else:
+                bot.send_message(chat_id=admin_id,
+                                 text='Unknown admin command.')
         except (AttributeError, KeyError, SystemExit) as e:  # argparse raises SystemExit if something went wrong.
-            self.logger.error('Failed to execute task via admin due to wrong usage with args %s, exception %s', args, e)
-            update.message.reply_text(quote=True, text=self.FAILED_TO_RUN_COMMAND_MSG)
+            self.logger.error('Failed to execute task via admin due to wrong usage with args: %s, exception: %s', args, e)
+            bot.send_message(chat_id=admin_id,
+                             text=self.FAILED_TO_RUN_COMMAND_MSG)
         except Exception as e:
             self.logger.error('Failed to execute task via admin with args %s, exception %s', args, e)
-            exception_msg = '{msg} {exc}'.format(msg=self.SOMETHING_WENT_WRONG_MSG, exc=e)
-            update.message.reply_text(quote=True, text=exception_msg)
+            exception_msg = self.SOMETHING_WENT_WRONG_MSG.format(exc=e)
+            bot.send_message(chat_id=admin_id,
+                             text=exception_msg)
