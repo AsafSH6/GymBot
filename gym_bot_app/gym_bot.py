@@ -9,6 +9,7 @@ from telegram.ext import Updater
 from gym_bot_app.commands import (AdminCommand,
                                   MyDaysCommand,
                                   TrainedCommand,
+                                  RankingCommand,
                                   SelectDaysCommand,
                                   SetCreatureCommand,
                                   MyStatisticsCommand,
@@ -41,6 +42,7 @@ def run_gym_bot(token, logger):
     AdminCommand(updater=updater, logger=logger).start()
     MyDaysCommand(updater=updater, logger=logger).start()
     TrainedCommand(updater=updater, logger=logger).start()
+    RankingCommand(updater=updater, logger=logger).start()
     SelectDaysCommand(updater=updater, logger=logger).start()
     SetCreatureCommand(updater=updater, logger=logger).start()
     MyStatisticsCommand(updater=updater, logger=logger).start()
