@@ -7,7 +7,7 @@ import textwrap
 
 
 class BotStatisticsCommand(Command):
-    """Telegram gym bot bot statistics command.
+    """Telegram gym bot statistics command.
 
     Sends bot statistics to the group when requested by one of trainees.
 
