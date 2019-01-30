@@ -27,7 +27,7 @@ class AdminCommand(Command):
     SUCCEEDED_TO_RUN_COMMAND_MSG = 'בוצע'
     FAILED_TO_RUN_COMMAND_MSG = 'נכשל'
     SOMETHING_WENT_WRONG_MSG = 'exception'
-    NEW_EXP_EVENT_CREATED = '{multiplier}X EXP from {start_datetime} to {end_datetime}'
+    NEW_EXP_EVENT_CREATED = '{multiplier}x EXP from {start_datetime} to {end_datetime}'
 
     TASKS = {
         'go_to_gym': GoToGymTask,

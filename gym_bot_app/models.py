@@ -188,14 +188,17 @@ class Trainee(Document):
         if self.get_training_info(training_date=training_date):
             raise RuntimeError('Already created training day info for today.')
 
-        gained_exp = 2
+        leveled_up = False
+        gained_exp = 0
+        if trained:
+            gained_exp = 2
 
-        exp_events = EXPEvent.objects.get_current_exp_events()
-        for exp_event in exp_events:
-            gained_exp *= exp_event.multiplier
+            exp_events = EXPEvent.objects.get_current_exp_events()
+            for exp_event in exp_events:
+                gained_exp *= exp_event.multiplier
 
-        leveled_up = self.level.gain_exp(exp=gained_exp)
-        self.save()
+            leveled_up = self.level.gain_exp(exp=gained_exp)
+            self.save()
 
         training_day_info = TrainingDayInfo.objects.create(trainee=self.pk, date=training_date, trained=trained, gained_exp=gained_exp)
         return training_day_info, leveled_up
