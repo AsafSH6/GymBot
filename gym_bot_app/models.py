@@ -79,7 +79,7 @@ class Level(EmbeddedDocument):
         return leveled_up
 
     def _level_up(self):
-        self.exp -= self.required_exp_for_next_level # Save the extra exp for the next level.
+        self.exp -= self.required_exp_for_next_level  # Save the extra exp for the next level.
         self.number += 1
 
     def _should_level_up(self):
@@ -294,7 +294,7 @@ class Trainee(Document):
 
     @property
     def groups(self):
-        return Group.objects.filter(trainees__contains=self)
+        return Group.objects.filter(is_deleted=False, trainees__contains=self)
 
     def __repr__(self):
         return '<Trainee {id} {first_name}>'.format(id=self.id,
@@ -335,6 +335,7 @@ class Group(Document):
     id = StringField(required=True, primary_key=True)
     trainees = ListField(CachedReferenceField(Trainee, auto_sync=True))
     level = EmbeddedDocumentField(Level, default=Level)
+    is_deleted = BooleanField(default=False)
 
     class GroupQuerySet(ExtendedQuerySet):
         def create(self, id, trainees=None):
@@ -367,6 +368,10 @@ class Group(Document):
 
     def __unicode__(self):
         return repr(self)
+
+    def delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.save()
 
 
 class Admin(Document):

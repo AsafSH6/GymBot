@@ -4,6 +4,9 @@ from __future__ import unicode_literals
 import argparse
 import datetime as dt
 
+from telegram.error import Unauthorized
+
+from gym_bot_app.decorators import get_group
 from gym_bot_app.models import Admin, EXPEvent, Group
 from gym_bot_app.commands import Command
 from gym_bot_app.tasks import (GoToGymTask,
@@ -28,6 +31,7 @@ class AdminCommand(Command):
     FAILED_TO_RUN_COMMAND_MSG = 'נכשל'
     SOMETHING_WENT_WRONG_MSG = 'exception'
     NEW_EXP_EVENT_CREATED = '{multiplier}x EXP from {start_datetime} to {end_datetime}'
+    DELETED_GROUP_MSG = 'deleted group successfully'
     FAILED_TO_NOTIFY_GROUP_EXP_EVENT = 'Failed to notify {group} about exp event due to exception: {exc}'
 
     TASKS = {
@@ -40,9 +44,11 @@ class AdminCommand(Command):
         super(AdminCommand, self).__init__(pass_args=True, *args, **kwargs)
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('--run-task', dest='task_name')
+        self.parser.add_argument('--delete-group', dest='delete_group', action='store_true')
         self.parser.add_argument('--exp-event', dest='exp_event', nargs='+')
 
-    def _handler(self, bot, update, args):
+    @get_group
+    def _handler(self, bot, update, group, args):
         """Override method to handle admin command.
 
         Execute admin commands.
@@ -63,6 +69,10 @@ class AdminCommand(Command):
                 task(updater=self.updater, logger=self.logger).execute()
                 self.logger.debug('Finished to execute %s via admin command', parsed_args.task_name)
                 update.message.reply_text(quote=True, text=self.SUCCEEDED_TO_RUN_COMMAND_MSG)
+            elif parsed_args.delete_group:
+                group.delete()
+                self.logger.debug('Finished to delete group %s', group)
+                update.message.reply_text(qoute=True, text=self.DELETED_GROUP_MSG)
             elif parsed_args.exp_event:
                 multiplier, start_date, start_time, end_date, end_time = parsed_args.exp_event
                 exp_event = EXPEvent.objects.create(
@@ -75,10 +85,13 @@ class AdminCommand(Command):
                     start_datetime=exp_event.start_time.strftime(self.DATETIME_FORMAT),
                     end_datetime=exp_event.end_time.strftime(self.DATETIME_FORMAT)
                 )
-                for group in Group.objects.all():
+                for group in Group.objects.filter(is_deleted=False):
                     try:
                         bot.send_message(chat_id=group.id,
                                          text=new_exp_event_msg)
+                    except Unauthorized:
+                        group.delete()
+                        self.logger.info('Unauthorized group %s - deleted', group)
                     except Exception as e:
                         msg = self.FAILED_TO_NOTIFY_GROUP_EXP_EVENT.format(group=group, exc=e)
                         self.logger.error(msg)

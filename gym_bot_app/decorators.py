@@ -5,7 +5,7 @@ import logging
 import functools
 import threading
 
-from telegram.error import TimedOut
+from telegram.error import TimedOut, Unauthorized
 
 from gym_bot_app.models import Group, Trainee
 from gym_bot_app.utils import get_bot_and_update_from_args
@@ -108,8 +108,7 @@ def run_for_all_groups(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         logger = logging.getLogger(func.__module__)
-        print Group.objects
-        for group in Group.objects:
+        for group in Group.objects.filter(is_deleted=False):
             try:
                 args_with_group = args + (group, )
                 func(*args_with_group, **kwargs)
@@ -117,6 +116,9 @@ def run_for_all_groups(func):
                 logger.error('Timeout occurred in module %s with execution func %s',
                              func.__module__,
                              func.func_name)
+            except Unauthorized:
+                group.delete()
+                logger.info('Unauthorized group %s - deleted', group)
             except Exception:
                 logger.error('Exception occurred in module %s with execution func %s',
                              func.__module__,
