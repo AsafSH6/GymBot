@@ -3,3 +3,4 @@ backups/
 *.pyc
 *.log
 t.py
+venv/
