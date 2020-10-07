@@ -1,5 +1,4 @@
-# GymBot
-telegram gym bot
+
 <!--
 *** Thanks for checking out this README Template. If you have a suggestion that would
 *** make this better, please fork the repo and create a pull request or simply open
@@ -26,6 +25,7 @@ telegram gym bot
 -->
 
 <!-- PROJECT LOGO -->
+<h1 align="center">GymBot</h>
 <br />
 <p align="center">
   <h3 align="center">Telegram Gym Bot</h3>
@@ -73,16 +73,16 @@ Telegram bot token
 </br>
 
 1.  Download the Telegram app to your phone
-2.  Creatק telegram bot
+2.  Create telegram bot
 ```sh
 https://core.telegram.org/bots#creating-a-new-bot
 ```
 > **when finishing to create the bot its important to save his token.** 
 
 MongoDB
-</br>
+<br />
 * Set up MongoDB database (there is free options that would fit development).
-</br>
+<br />
 if needed you can use this guide for the set up
 ```sh
 https://docs.atlas.mongodb.com/getting-started/
