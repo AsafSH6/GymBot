@@ -114,10 +114,17 @@ export MONGODB_URL_CON=<MongoDB_connection_string>
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-To start the server you need to run the follwing command.
+* To start the server you need to run the follwing command.
 ```sh
 python gym_bot_app/gym_bot.py
 ```
+* To start using the bot
+```sh
+1. Create telegram group with your friends
+2. Add GymiousBot to the group
+3. Use the bot commands set to start
+```
+
 
 
 ## Contributing
