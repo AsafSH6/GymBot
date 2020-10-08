@@ -31,7 +31,7 @@
   <h3 align="center">Telegram Gym Bot</h3>
 
   <p align="center">
-    YOUR_SHORT_DESCRIPTION
+    <i>Telegram bot to forgroups which want to help each other keep the motivation</i>
     <br />
     <br />
     <a href="https://github.com/AsafSH6/GymBot/issues">Report Bug</a>
@@ -67,7 +67,7 @@
 
 To get a local copy up and running follow these simple steps.
 
-## Prerequisites
+### Prerequisites
 
 Telegram bot token
 </br>
@@ -101,7 +101,7 @@ cd ./GymBot
 ``` 
 2. Install dependencies
 ```sh
-Run pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 3. Setup environment variables
 ```sh
