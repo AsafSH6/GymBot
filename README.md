@@ -31,7 +31,7 @@
   <h3 align="center">Telegram Gym Bot</h3>
 
   <p align="center">
-    <i>Telegram bot to forgroups which want to help each other keep the motivation</i>
+    <i>Telegram bot for training groups which want to help each other stay motivated</i>
     <br />
     <br />
     <a href="https://github.com/AsafSH6/GymBot/issues">Report Bug</a>
@@ -132,9 +132,9 @@ python gym_bot_app/gym_bot.py
 Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
+2. Create your Feature Branch (`git checkout -b feature/amazing-feature`)
+3. Commit your Changes (`git commit -m 'Add some amazing-feature'`)
+4. Push to the Branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 
