@@ -8,3 +8,4 @@ from gym_bot_app.commands.bot_statistics import BotStatisticsCommand
 from gym_bot_app.commands.trained import TrainedCommand
 from gym_bot_app.commands.all_training_trainees import AllTrainingTraineesCommand
 from gym_bot_app.commands.ranking import RankingCommand
+from gym_bot_app.commands.motivation_quotes import MotivationQuotesCommand
