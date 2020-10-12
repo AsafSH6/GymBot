@@ -44,7 +44,7 @@ class MotivationQuotesCommand(Command):
         """
         self.logger.info('%s asked to be motivated in %s', trainee, group)
 
-        random_number = random.randint(0, len(self.QUOTE_LIST)-1 )
+        random_number = random.randint(0, len(self.QUOTE_LIST) - 1)
 
         random_quote = self.QUOTE_LIST[random_number]
 
