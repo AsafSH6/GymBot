@@ -84,9 +84,11 @@ MongoDB
 * Set up MongoDB database (there is free options that would fit development).
 <br />
 if needed you can use this guide for the set up
+
 ```sh
 https://docs.atlas.mongodb.com/getting-started/
 ```
+
 >**when finishing to set up the MongoDB its important to save the connection string.**
 
 ### Installation
