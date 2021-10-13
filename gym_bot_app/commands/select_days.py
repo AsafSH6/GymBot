@@ -83,10 +83,12 @@ class SelectDaysCommand(Command):
         try:
             selected_day = trainee.training_days.get(name=selected_day)
             self.logger.debug('Selected day %s', selected_day)
-            current_day_index = (datetime.today().weekday() + 1) % len(DAYS_NAME)
+            today = datetime.today().strftime('%A')
+            self.logger.debug('Today is %s', today)
+            today_index = DAYS_NAME.index(today)
             selected_day_index = DAYS_NAME.index(selected_day.name)
-            if selected_day_index < current_day_index:
-                self.logger.debug('Trainee`s selected day index %s is before current day index %s', selected_day_index, current_day_index)
+            if selected_day_index < today_index:
+                self.logger.debug('Trainee`s selected day index %s is before current day index %s', selected_day_index, today_index)
                 bot.answerCallbackQuery(text=self.CANT_CHOOSE_BEFORE_CURRENT_DAY,
                                     callback_query_id=update.callback_query.id,
                                     parse_mode=ParseMode.HTML)
@@ -101,7 +103,6 @@ class SelectDaysCommand(Command):
 
             # Alert trainees canceled training day on the same day
             # they were supposed to train.
-            today = datetime.today().strftime('%A')
             if (selected_day.selected is False  # Canceled training day.
                     and
                 selected_day.name == today):  # The day is today.
