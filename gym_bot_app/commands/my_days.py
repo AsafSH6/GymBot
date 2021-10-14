@@ -1,9 +1,10 @@
-# encoding: utf-8
-from __future__ import unicode_literals
+from telegram import Update
+from telegram.ext import CallbackContext
 
 from gym_bot_app.decorators import get_trainee_and_group
 from gym_bot_app.commands import (Command,
                                   SelectDaysCommand)
+from gym_bot_app.models import Trainee, Group
 
 
 class MyDaysCommand(Command):
@@ -19,7 +20,7 @@ class MyDaysCommand(Command):
         super(MyDaysCommand, self).__init__(*args, **kwargs)
 
     @get_trainee_and_group
-    def _handler(self, bot, update, trainee, group):
+    def _handler(self, update: Update, context: CallbackContext, trainee: Trainee, group: Group):
         """Override method to handle my days command.
 
         Checks the training days of the requested trainee and sends it back to the chat.

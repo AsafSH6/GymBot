@@ -1,5 +1,4 @@
 # encoding: utf-8
-from __future__ import unicode_literals
 from datetime import datetime
 
 import telegram
@@ -80,21 +79,18 @@ def find_instance_in_args(obj, args):
         obj. instance of the obj type that found in args.
 
     """
-    return filter(lambda arg: isinstance(arg, obj), args)[0]
+    return next(filter(lambda arg: isinstance(arg, obj), args))
 
 
-def get_bot_and_update_from_args(args):
+def get_update_from_args(args):
     """Find bot and update instance in the given args.
 
     Args:
         args(iterable): arguments to search for the bot and update.
 
     Returns:
-        tuple.
-          telegram.Bot. instance of bot that found in args.
-          telegram.Upate. instance of update that found in args.
+      telegram.Update. instance of update that found in args.
 
     """
-    bot = find_instance_in_args(telegram.bot.Bot, args)
     update = find_instance_in_args(telegram.update.Update, args)
-    return bot, update
+    return update

@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 import logging
 import os
 
@@ -25,7 +22,6 @@ from gym_bot_app.tasks import (GoToGymTask,
 MSG_TIMEOUT = 20
 
 logging.basicConfig(filename='logs/gymbot.log',
-                    encoding='utf-8',
                     format='%(asctime)s %(levelname)s - [%(module)s:%(funcName)s:%(lineno)d] %(message)s',
                     datefmt='%d-%m-%Y:%H:%M:%S',
                     level=logging.INFO)
@@ -68,7 +64,7 @@ if __name__ == '__main__':
     from mongoengine import connect
     connect(host=db_con_string)
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger()
     logger.addHandler(logging.StreamHandler())
 
     run_gym_bot(token, logger)

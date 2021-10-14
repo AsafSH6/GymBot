@@ -1,9 +1,11 @@
-# encoding: utf-8
-from __future__ import unicode_literals
+from telegram import Update
+from telegram.ext import CallbackContext
 
 from gym_bot_app.decorators import get_group
 from gym_bot_app.commands import Command
 import textwrap
+
+from gym_bot_app.models import Group
 
 
 class BotStatisticsCommand(Command):
@@ -21,7 +23,7 @@ class BotStatisticsCommand(Command):
         super(BotStatisticsCommand, self).__init__(*args, **kwargs)
 
     @get_group
-    def _handler(self, bot, update, group):
+    def _handler(self, update: Update, context: CallbackContext, group: Group):
         """Override method to handle bot statistics command.
 
         Checks level of bot in the group and sends it back to the chat.

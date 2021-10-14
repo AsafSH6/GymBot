@@ -1,11 +1,12 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 from datetime import datetime
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 from gym_bot_app.commands import Command
 from gym_bot_app import FACEPALMING_EMOJI, WEIGHT_LIFTER_EMOJI, TROPHY_EMOJI
 from gym_bot_app.decorators import get_trainee_and_group
+from gym_bot_app.models import Trainee, Group
 from gym_bot_app.utils import trainee_already_marked_training_date
 
 
@@ -27,7 +28,7 @@ class TrainedCommand(Command):
         super(TrainedCommand, self).__init__(*args, **kwargs)
 
     @get_trainee_and_group
-    def _handler(self, bot, update, trainee, group):
+    def _handler(self, update: Update, context: CallbackContext, trainee: Trainee, group: Group):
         """Override method to handle trained command.
 
         Creates training day info of today.
@@ -76,20 +77,24 @@ class TrainedCommand(Command):
                 creature=trainee.personal_configurations.creature,
                 gained_exp=gained_exp
             )
-            trainee_leveled_up_other_groups = self.TRAINEE_LEVELED_UP_MSG_OTHER_GROUPS.format(trainee=trainee.first_name,
-                                                                                              level=trainee.level)
+            trainee_leveled_up_other_groups = self.TRAINEE_LEVELED_UP_MSG_OTHER_GROUPS.format(
+                trainee=trainee.first_name,
+                level=trainee.level,
+            )
             other_groups = (g for g in trainee.groups if g != group)
             for other_group in other_groups:
-                bot.send_message(chat_id=other_group.id,
-                                 text=trained_today_msg_to_other_groups)
+                context.bot.send_message(
+                    chat_id=other_group.id,
+                    text=trained_today_msg_to_other_groups
+                )
 
                 if trainee_leveled_up:
-                    bot.send_message(chat_id=other_group.id, text=trainee_leveled_up_other_groups)
+                    context.bot.send_message(chat_id=other_group.id, text=trainee_leveled_up_other_groups)
 
                 group_leveled_up = other_group.level.gain_exp(exp=training_info.gained_exp)
                 if group_leveled_up:
                     self.logger.info('Group %s leveled up to level %s', other_group, other_group.level)
                     other_group_leveled_up_msg = self.GROUP_LEVELED_UP_MSG.format(level=other_group.level)
-                    bot.send_message(chat_id=other_group.id, text=other_group_leveled_up_msg)
+                    context.bot.send_message(chat_id=other_group.id, text=other_group_leveled_up_msg)
 
                 other_group.save()

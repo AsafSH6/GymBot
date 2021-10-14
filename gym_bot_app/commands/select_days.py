@@ -1,14 +1,13 @@
-# encoding: utf-8
-from __future__ import unicode_literals
 from datetime import datetime
 
-from telegram import ParseMode, error
-from telegram.ext import CallbackQueryHandler
+from telegram import ParseMode, error, Update
+from telegram.ext import CallbackQueryHandler, CallbackContext
 
 from gym_bot_app import DAYS_NAME, LYING_FACE_EMOJI
 from gym_bot_app.commands import Command
 from gym_bot_app.keyboards import trainee_select_days_inline_keyboard
 from gym_bot_app.decorators import get_trainee_and_group
+from gym_bot_app.models import Trainee, Group
 
 
 class SelectDaysCommand(Command):
@@ -34,7 +33,7 @@ class SelectDaysCommand(Command):
         )
 
     @get_trainee_and_group
-    def _handler(self, bot, update, trainee, group):
+    def _handler(self, update: Update, context: CallbackContext, trainee: Trainee, group: Group):
         """Override method to handle select days command.
 
         Generate keyboard to select or unselect training days.
@@ -61,7 +60,7 @@ class SelectDaysCommand(Command):
                                                    callback_identifier=cls.SELECT_DAYS_QUERY_IDENTIFIER)
 
     @get_trainee_and_group
-    def selected_day_callback_query(self, bot, update, trainee, group):
+    def selected_day_callback_query(self, update: Update, context: CallbackContext, trainee: Trainee, group: Group):
         """Response handler of select days command.
 
         In case day was not selected before- mark it as selected.
@@ -73,11 +72,12 @@ class SelectDaysCommand(Command):
         query = update.callback_query
         _, trainee_id, selected_day = query.data.split()
 
-        if trainee.id != unicode(trainee_id):  # other trainee tried to select days for this trainee
+        if trainee.id != trainee_id:  # other trainee tried to select days for this trainee
             self.logger.debug('Trainee is not allow to choose for others')
-            bot.answerCallbackQuery(text=self.CANT_CHOOSE_TO_OTHERS_MSG,
-                                    callback_query_id=update.callback_query.id,
-                                    parse_mode=ParseMode.HTML)
+            context.bot.answerCallbackQuery(
+                text=self.CANT_CHOOSE_TO_OTHERS_MSG,
+                callback_query_id=update.callback_query.id,
+            )
             return
 
         try:
@@ -89,17 +89,22 @@ class SelectDaysCommand(Command):
             selected_day_index = DAYS_NAME.index(selected_day.name)
             if selected_day_index < today_index:
                 self.logger.debug('Trainee`s selected day index %s is before current day index %s', selected_day_index, today_index)
-                bot.answerCallbackQuery(text=self.CANT_CHOOSE_BEFORE_CURRENT_DAY,
-                                    callback_query_id=update.callback_query.id,
-                                    parse_mode=ParseMode.HTML)
+                context.bot.answerCallbackQuery(
+                    text=self.CANT_CHOOSE_BEFORE_CURRENT_DAY,
+                    callback_query_id=update.callback_query.id,
+                )
                 return
             selected_day.selected = not selected_day.selected
             updated_keyboard = self.get_select_days_keyboard(trainee=trainee)
-            bot.edit_message_reply_markup(chat_id=query.message.chat_id,
-                                          message_id=query.message.message_id,
-                                          reply_markup=updated_keyboard)
-            bot.answerCallbackQuery(text='selected {}'.format(selected_day.name.capitalize()),
-                                    callback_query_id=update.callback_query.id)
+            context.bot.edit_message_reply_markup(
+                chat_id=query.message.chat_id,
+                message_id=query.message.message_id,
+                reply_markup=updated_keyboard
+            )
+            context.bot.answerCallbackQuery(
+                text='selected {}'.format(selected_day.name.capitalize()),
+                callback_query_id=update.callback_query.id
+            )
 
             # Alert trainees canceled training day on the same day
             # they were supposed to train.
@@ -108,12 +113,16 @@ class SelectDaysCommand(Command):
                 selected_day.name == today):  # The day is today.
                 self.logger.debug("Trainee canceled training day on the same day")
                 msg = self.CANCELED_TRAINING_DAY_ON_THE_SAME_DAY.format(trainee_name=trainee.first_name)
-                bot.send_message(chat_id=group.id,
-                                 text=msg)
+                context.bot.send_message(
+                    chat_id=group.id,
+                    text=msg
+                )
 
             trainee.save()  # save to db after the message sent to get better performance
         except error.BadRequest:
             self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
                               ' another keyboard')
-            bot.answerCallbackQuery(text=self.ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG,
-                                    callback_query_id=update.callback_query.id)
+            context.bot.answerCallbackQuery(
+                text=self.ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG,
+                callback_query_id=update.callback_query.id
+            )

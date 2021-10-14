@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -20,7 +17,7 @@ def all_group_participants_select_days_inline_keyboard(group, callback_identifie
 
     Args:
         group(models.Group): group to generate keyboard for.
-        callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
+        callback_identifier(str): identifier of the callback handler which will be executed once keyboard is used.
 
     Returns:
         InlineKeyboardMarkup. inline keyboard for all participants in group.
@@ -49,7 +46,7 @@ def trainee_select_days_inline_keyboard(trainee, callback_identifier):
 
     Args:
         trainee(models.Trainee): trainee to generate keyboard for.
-        callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
+        callback_identifier(str): identifier of the callback handler which will be executed once keyboard is used.
 
     Returns:
         InlineKeyboardMarkup. inline keyboard for specific trainee.
@@ -79,10 +76,10 @@ def yes_or_no_inline_keyboard(callback_identifier,
     callback_data is in form of (callback identifier, selected response, selected day date)
 
     Args:
-        callback_identifier(str | unicode): identifier of the callback handler which will be executed once keyboard is used.
-        yes_option (str | unicode): button yes option text.
-        no_option (str | unicode): button no option text.
-        date_format (str | unicode): format of date in callback data.
+        callback_identifier(str): identifier of the callback handler which will be executed once keyboard is used.
+        yes_option (str): button yes option text.
+        no_option (str): button no option text.
+        date_format (str): format of date in callback data.
 
     Returns:
         InlineKeyboardMarkup. inline yes or no keyboard.

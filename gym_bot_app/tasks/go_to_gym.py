@@ -1,8 +1,7 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 from datetime import time, timedelta
+from typing import List
 
+from gym_bot_app.models import Group, Trainee
 from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import repeats, run_for_all_groups
 from gym_bot_app.utils import get_trainees_that_selected_today_and_did_not_train_yet
@@ -25,7 +24,7 @@ class GoToGymTask(Task):
 
     @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
-    def execute(self, group):
+    def execute(self, group: Group):
         """Override method to execute go to gym task.
 
         Sends go to gym message with the trainees of today to the given group chat.
@@ -43,7 +42,7 @@ class GoToGymTask(Task):
         go_to_gym_msg = self._get_go_to_gym_msg(trainees=relevant_trainees)
         self.updater.bot.send_message(chat_id=group.id, text=go_to_gym_msg)
 
-    def _get_go_to_gym_msg(self, trainees):
+    def _get_go_to_gym_msg(self, trainees: List[Trainee]) -> str:
         """Generate go to gym message based on the given trainees.
 
         Args:
