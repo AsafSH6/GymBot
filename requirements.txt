@@ -1,6 +1,9 @@
+APScheduler==3.6.3
 backports-abc==0.5
 backports.functools-lru-cache==1.6.1
 backports.shutil-get-terminal-size==1.0.0
+backports.zoneinfo==0.2.1
+cachetools==4.2.2
 certifi==2018.1.18
 cffi==1.14.3
 colorama==0.3.9
@@ -22,11 +25,15 @@ pycparser==2.20
 Pygments==2.7.4
 pymongo==3.6.1
 python-telegram-bot==13.7
+pytz==2021.3
 scandir==1.7
 simplegeneric==0.8.1
 singledispatch==3.4.0.3
 six==1.11.0
 telegram==0.0.1
+tornado==6.1
 traitlets==4.3.2
+tzdata==2021.2.post0
+tzlocal==3.0
 wcwidth==0.1.7
 win-unicode-console==0.5
