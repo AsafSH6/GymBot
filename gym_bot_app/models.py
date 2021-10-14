@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 import math
 from datetime import datetime, timedelta
 
@@ -28,7 +25,7 @@ DEFAULT_TRAINEE_CREATURE = 'שור עולם'
 
 MAX_EXP = 2147483648
 LEVELS = {level_number: math.ceil((level_number - 1) * 3.5)
-          for level_number in xrange(1, 200)}
+          for level_number in range(1, 200)}
 
 
 class Day(EmbeddedDocument):
@@ -37,7 +34,7 @@ class Day(EmbeddedDocument):
 
     @classmethod
     def get_week_days(cls):
-        return [cls(day_name) for day_name in DAYS_NAME]
+        return [cls(name=day_name) for day_name in DAYS_NAME]
 
     def __repr__(self):
         return '<Day {day_name} {selected}>'.format(day_name=self.name,
@@ -45,9 +42,6 @@ class Day(EmbeddedDocument):
                                                              else 'not selected')
 
     def __str__(self):
-        return repr(self)
-
-    def __unicode__(self):
         return repr(self)
     
 
@@ -99,9 +93,6 @@ class Level(EmbeddedDocument):
     def __str__(self):
         return repr(self)
 
-    def __unicode__(self):
-        return repr(self)
-
 
 class PersonalConfigurations(EmbeddedDocument):
     creature = StringField(default=DEFAULT_TRAINEE_CREATURE)
@@ -132,9 +123,6 @@ class EXPEvent(Document):
     def __str__(self):
         return repr(self)
 
-    def __unicode__(self):
-        return repr(self)
-
 
 class Trainee(Document):
     id = StringField(required=True, primary_key=True)
@@ -148,8 +136,8 @@ class Trainee(Document):
         def create(self, id, first_name):
             training_days = Day.get_week_days()
 
-            return super(Trainee.TraineeQuerySet, self).create(id=unicode(id),
-                                                               first_name=unicode(first_name),
+            return super(Trainee.TraineeQuerySet, self).create(id=str(id),
+                                                               first_name=first_name,
                                                                training_days=training_days)
 
     meta = {
@@ -194,13 +182,19 @@ class Trainee(Document):
             gained_exp = 2
 
             exp_events = EXPEvent.objects.get_current_exp_events()
+
             for exp_event in exp_events:
                 gained_exp *= exp_event.multiplier
 
             leveled_up = self.level.gain_exp(exp=gained_exp)
             self.save()
 
-        training_day_info = TrainingDayInfo.objects.create(trainee=self.pk, date=training_date, trained=trained, gained_exp=gained_exp)
+        training_day_info = TrainingDayInfo.objects.create(
+            trainee=self.pk,
+            date=training_date,
+            trained=trained,
+            gained_exp=gained_exp
+        )
         return training_day_info, leveled_up
 
     def get_training_info(self, training_date):
@@ -303,9 +297,6 @@ class Trainee(Document):
     def __str__(self):
         return repr(self)
 
-    def __unicode__(self):
-        return repr(self)
-
 
 class TrainingDayInfo(Document):
     trainee = LazyReferenceField(document_type=Trainee)
@@ -327,9 +318,6 @@ class TrainingDayInfo(Document):
     def __str__(self):
         return repr(self)
 
-    def __unicode__(self):
-        return repr(self)
-
 
 class Group(Document):
     id = StringField(required=True, primary_key=True)
@@ -342,7 +330,7 @@ class Group(Document):
             if not trainees:
                 trainees = []
 
-            return super(Group.GroupQuerySet, self).create(id=unicode(id),
+            return super(Group.GroupQuerySet, self).create(id=str(id),
                                                            trainees=trainees)
 
     meta = {
@@ -366,9 +354,6 @@ class Group(Document):
     def __str__(self):
         return repr(self)
 
-    def __unicode__(self):
-        return repr(self)
-
     def delete(self, *args, **kwargs):
         self.is_deleted = True
         self.save()
@@ -379,7 +364,7 @@ class Admin(Document):
 
     class AdminQuerySet(ExtendedQuerySet):
         def create(self, id):
-            return super(Admin.AdminQuerySet, self).create(id=unicode(id))
+            return super(Admin.AdminQuerySet, self).create(id=str(id))
 
         def is_admin(self, id):
             return bool(self.get(id=id))
@@ -392,7 +377,4 @@ class Admin(Document):
         return '<Admin {id}>'.format(id=self.id)
 
     def __str__(self):
-        return repr(self)
-
-    def __unicode__(self):
         return repr(self)

@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 import logging
 import functools
 import threading
@@ -8,7 +5,7 @@ import threading
 from telegram.error import TimedOut, Unauthorized
 
 from gym_bot_app.models import Group, Trainee
-from gym_bot_app.utils import get_bot_and_update_from_args
+from gym_bot_app.utils import get_update_from_args
 
 
 def get_group(func):
@@ -23,7 +20,7 @@ def get_group(func):
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        bot, update = get_bot_and_update_from_args(args)
+        update = get_update_from_args(args)
         group_id = update.message.chat_id if update.message else update.callback_query.message.chat_id
         group = Group.objects.get(id=group_id)
 
@@ -56,7 +53,7 @@ def get_trainee_and_group(func):
     @get_group
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        bot, update = get_bot_and_update_from_args(args)
+        update = get_update_from_args(args)
 
         trainee_id = update.effective_user.id
         trainee = Trainee.objects.get(id=trainee_id)
@@ -78,7 +75,7 @@ def repeats(every_seconds):
     """Decorator to repeat function.
 
     Args:
-        every_seconds(int): number of seconds to wait between each repeat.
+        every_seconds( | float): number of seconds to wait between each repeat.
 
     """
     def decorator(func):

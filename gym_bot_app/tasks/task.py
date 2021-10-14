@@ -1,6 +1,3 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 import threading
 from datetime import datetime, timedelta
 
@@ -77,7 +74,7 @@ class Task(object):
                                       microsecond=target_time.microsecond)
 
         # if today is the requested day and the target time already passed.
-        if days_until_next_target_day is 0 and now.time() > target_time:
+        if days_until_next_target_day == 0 and now.time() > target_time:
             self.logger.debug('Today is the requested day but the time already passed, targeting time for next week')
             target_datetime += timedelta(weeks=1)
         else:

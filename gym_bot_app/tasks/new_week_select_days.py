@@ -1,13 +1,11 @@
-# encoding: utf-8
-from __future__ import unicode_literals
-
 from datetime import time, timedelta
 
-from telegram import error
-from telegram.ext import CallbackQueryHandler
+from telegram import error, Update
+from telegram.ext import CallbackQueryHandler, CallbackContext
 from telegram.vendor.ptb_urllib3.urllib3 import Timeout
 
 from gym_bot_app.keyboards import all_group_participants_select_days_inline_keyboard
+from gym_bot_app.models import Trainee, Group
 from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import get_trainee_and_group, repeats, run_for_all_groups
 
@@ -39,7 +37,7 @@ class NewWeekSelectDaysTask(Task):
 
     @repeats(every_seconds=timedelta(weeks=1).total_seconds())
     @run_for_all_groups
-    def execute(self, group):
+    def execute(self, group: Group):
         """Override method to execute new week select days task.
 
         Unselect all training days for trainees in group and sends keyboard to select
@@ -68,7 +66,8 @@ class NewWeekSelectDaysTask(Task):
             self.logger.error('Timeout occurred')
 
     @get_trainee_and_group
-    def new_week_selected_day_callback_query(self, bot, update, trainee, group):
+    def new_week_selected_day_callback_query(self, update: Update, context: CallbackContext,
+                                             trainee: Trainee, group: Group):
         """Response handler of new week select days task.
 
         In case day was not selected before- mark as selected.
@@ -90,13 +89,19 @@ class NewWeekSelectDaysTask(Task):
             callback_identifier=self.NEW_WEEK_SELECT_DAYS_CALLBACK_IDENTIFIER
         )
         try:
-            bot.edit_message_reply_markup(chat_id=group.id,
-                                          message_id=query.message.message_id,
-                                          reply_markup=keyboard)
-            bot.answerCallbackQuery(text="selected {}".format(selected_day.name.capitalize()),
-                                    callback_query_id=update.callback_query.id)
+            context.bot.edit_message_reply_markup(
+                chat_id=group.id,
+                message_id=query.message.message_id,
+                reply_markup=keyboard
+            )
+            context.bot.answerCallbackQuery(
+                text="selected {}".format(selected_day.name.capitalize()),
+                callback_query_id=update.callback_query.id
+            )
         except error.BadRequest:
             self.logger.debug('The keyboard have not changed probably because the trainee changed it from'
                               ' another keyboard.')
-            bot.answerCallbackQuery(text=self.ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG,
-                                    callback_query_id=update.callback_query.id)
+            context.bot.answerCallbackQuery(
+                text=self.ALREADY_CHANGED_IN_ANOTHER_PLACE_MSG,
+                callback_query_id=update.callback_query.id
+            )
