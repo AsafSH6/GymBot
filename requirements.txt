@@ -30,7 +30,6 @@ scandir==1.7
 simplegeneric==0.8.1
 singledispatch==3.4.0.3
 six==1.11.0
-telegram==0.0.1
 tornado==6.1
 traitlets==4.3.2
 tzdata==2021.2.post0
