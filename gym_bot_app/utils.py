@@ -1,5 +1,5 @@
 # encoding: utf-8
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import telegram
 
@@ -94,3 +94,18 @@ def get_update_from_args(args):
     """
     update = find_instance_in_args(telegram.update.Update, args)
     return update
+
+def get_dates_of_week(date):
+    """Returns a list of the dates of the week containing the given day.
+
+    A week begins from Sunday and ends on Saturday.
+    
+    Args:
+        date(datetime): a day from the requested week.
+    
+    Returns:
+      list. a list of datetime objects of dates in the week containing the given day.
+    """
+    day_idx = (date.weekday() + 1) % 7  # turn sunday into 0, monday into 1, etc.
+    sunday = date - timedelta(days=day_idx)
+    return [sunday + timedelta(days = i) for i in range(7)]
