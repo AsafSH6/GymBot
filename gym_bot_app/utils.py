@@ -107,5 +107,5 @@ def get_dates_of_week(date):
       list. a list of datetime objects of dates in the week containing the given day.
     """
     day_idx = (date.weekday() + 1) % 7  # turn sunday into 0, monday into 1, etc.
-    sunday = date - timedelta(days=day_idx)
+    sunday = date.date() - timedelta(days=day_idx)
     return [sunday + timedelta(days = i) for i in range(7)]

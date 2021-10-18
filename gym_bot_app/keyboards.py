@@ -54,9 +54,10 @@ def trainee_select_days_inline_keyboard(trainee, callback_identifier):
 
     """
     keyboard = []
+    dates_of_week = get_dates_of_week(datetime.today())
     for day in trainee.training_days:
         training_day = day.name
-        training_date = get_dates_of_week(datetime.today())[trainee.training_days.index(day)]
+        training_date = dates_of_week[trainee.training_days.index(day)]
 
         if day.selected:
             training_day_info = trainee.get_training_info(training_date)
@@ -64,7 +65,7 @@ def trainee_select_days_inline_keyboard(trainee, callback_identifier):
                 training_day += ' ' + WEIGHT_LIFTER_EMOJI
             elif training_day_info[0].trained:
                 training_day += ' ' + MUSCLE_EMOJI
-            elif not training_day_info[0].trained:
+            else:
                 training_day += ' ' + DISAPPOINTED_FACE_EMOJI
 
         callback_data = '{callback_identifier} {id} {day_name}'.format(id=trainee.id,
