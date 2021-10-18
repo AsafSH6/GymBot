@@ -16,7 +16,8 @@ from gym_bot_app.commands import (AdminCommand,
 
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
-                               NewWeekSelectDaysTask)
+                               NewWeekSelectDaysTask,
+                               DidNotTrainUpdaterTask)
 
 
 MSG_TIMEOUT = 20
@@ -34,6 +35,7 @@ def run_gym_bot(token, logger):
     GoToGymTask(updater=updater, logger=logger).start()
     WentToGymTask(updater=updater, logger=logger).start()
     NewWeekSelectDaysTask(updater=updater, logger=logger).start()
+    DidNotTrainUpdaterTask(updater=updater, logger=logger).start()
 
     """ Commands """
     AdminCommand(updater=updater, logger=logger).start()
