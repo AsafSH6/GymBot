@@ -112,13 +112,13 @@ def run_for_all_groups(func):
             except TimedOut:
                 logger.error('Timeout occurred in module %s with execution func %s',
                              func.__module__,
-                             func.func_name)
+                             func.__name__)
             except Unauthorized:
                 group.delete()
                 logger.info('Unauthorized group %s - deleted', group)
             except Exception:
                 logger.error('Exception occurred in module %s with execution func %s',
                              func.__module__,
-                             func.func_name)
+                             func.__name__)
 
     return wrapper
