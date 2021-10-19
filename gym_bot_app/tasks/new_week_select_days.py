@@ -2,7 +2,7 @@ from datetime import time, timedelta
 
 from telegram import error, Update
 from telegram.ext import CallbackQueryHandler, CallbackContext
-from telegram.vendor.ptb_urllib3.urllib3 import Timeout
+from telegram.error import TimedOut
 
 from gym_bot_app.keyboards import all_group_participants_select_days_inline_keyboard
 from gym_bot_app.models import Trainee, Group
@@ -62,7 +62,7 @@ class NewWeekSelectDaysTask(Task):
             self.updater.bot.send_message(chat_id=group.id,
                                           text=self.NEW_WEEK_SELECT_DAYS_MSG,
                                           reply_markup=keyboard)
-        except Timeout:
+        except TimedOut:
             self.logger.error('Timeout occurred')
 
     @get_trainee_and_group
