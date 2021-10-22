@@ -166,7 +166,7 @@ class Trainee(Document):
         Returns:
             str. A telegram-style user mention.
         """
-        return f"[{self.first_name}](tg://user?id={self.id})"
+        return f"[@{self.first_name}](tg://user?id={self.id})"
 
     def add_training_info(self, training_date, trained):
         """Add training info to trainee.
