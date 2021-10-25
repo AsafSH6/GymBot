@@ -42,24 +42,14 @@ class DidNotTrainUpdaterTask(Task):
         if relevant_trainees:
             not_trained_time = datetime.today().date()
             for trainee in relevant_trainees:
-                trainee.add_training_info(training_date=not_trained_time, trained=False)
-            self._notify_not_trained(relevant_trainees)
+                if not trainee.get_training_info(training_date=not_trained_time):
+                    trainee.add_training_info(training_date=not_trained_time, trained=False)
+            did_not_go_to_gym_msg = self._get_did_not_go_to_gym_msg(trainees)
+            self.updater.bot.send_message(chat_id=group.id, text=did_not_go_to_gym_msg, parse_mode="markdown")
                 
         else:
             self.logger.debug('There are no trainees that said they would train and did not')
 
-    def _notify_not_trained(self, trainees):
-        """Notify groups with trainees in them that they did not train.
-
-        Args:
-            trainees(list): trainees that will be included in the message.
-
-        """
-        all_trainees_groups = set()
-        for trainee in trainees:
-            all_trainees_groups = all_trainees_groups.union(trainee.groups)
-        for group in all_trainees_groups:
-            self.updater.bot.send_message(chat_id=group.id, text=self._get_did_not_go_to_gym_msg(trainees))
 
     def _get_did_not_go_to_gym_msg(self, trainees: List[Trainee]):
         """Generate did not go to gym message based on the given trainees.
@@ -71,7 +61,7 @@ class DidNotTrainUpdaterTask(Task):
             str. message of did not go to gym with the given trainees.
 
         """
-        trainee_string = ' '.join(trainee.first_name for trainee in trainees)
+        trainee_string = ' '.join(trainee.get_mention_string() for trainee in trainees)
 
         if len(trainees) > 1:
             self.logger.debug('More than one trainee therefore creating plural msg')
