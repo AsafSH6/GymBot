@@ -1,6 +1,7 @@
 from datetime import time, timedelta, datetime
 from typing import List
 
+from telegram import ParseMode
 from telegram.ext import CallbackQueryHandler
 
 from gym_bot_app.models import Trainee, Group
@@ -11,7 +12,7 @@ from gym_bot_app.decorators import repeats, run_for_all_groups
 
 class DidNotTrainUpdaterTask(Task):
     """Telegram gym bot update trainee did not go to gym task."""
-    DEFAULT_TARGET_TIME = time(hour=23, minute=59, second=0, microsecond=0)
+    DEFAULT_TARGET_TIME = time(hour=23, minute=55, second=0, microsecond=0)
     DID_NOT_TRAIN_QUERY_IDENTIFIER = 'did_not_train_updater'
 
     DATE_FORMAT = '%d/%m/%Y'
@@ -40,12 +41,13 @@ class DidNotTrainUpdaterTask(Task):
         self.logger.debug('Relevant trainees %s', relevant_trainees)
 
         if relevant_trainees:
-            not_trained_time = datetime.today().date()
+            # The use of timedelta here is to make sure that we remain within the same day we wanted to
+            not_trained_time = (datetime.today() - timedelta(hours=2)).date()
             for trainee in relevant_trainees:
                 if not trainee.get_training_info(training_date=not_trained_time):
                     trainee.add_training_info(training_date=not_trained_time, trained=False)
             did_not_go_to_gym_msg = self._get_did_not_go_to_gym_msg(trainees)
-            self.updater.bot.send_message(chat_id=group.id, text=did_not_go_to_gym_msg, parse_mode="markdown")
+            self.updater.bot.send_message(chat_id=group.id, text=did_not_go_to_gym_msg, parse_mode=ParseMode.MARKDOWN)
                 
         else:
             self.logger.debug('There are no trainees that said they would train and did not')

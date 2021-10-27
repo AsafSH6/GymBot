@@ -1,7 +1,7 @@
 from datetime import time, timedelta, datetime
 from typing import List
 
-from telegram import Update
+from telegram import Update, ParseMode
 from telegram.ext import CallbackQueryHandler, CallbackContext
 
 from gym_bot_app.models import Trainee, Group
@@ -66,7 +66,7 @@ class WentToGymTask(Task):
             self.updater.bot.send_message(chat_id=group.id,
                                           text=went_to_gym_msg,
                                           reply_markup=went_to_gym_keyboard,
-                                          parse_mode="markdown")
+                                          parse_mode=ParseMode.MARKDOWN)
         else:
             self.logger.debug('There are no relevant trainees')
 
