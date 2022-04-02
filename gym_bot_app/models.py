@@ -1,5 +1,6 @@
 import math
 from datetime import datetime, timedelta
+from calendar import monthrange
 
 from mongoengine import (
     Document,
@@ -296,6 +297,28 @@ class Trainee(Document):
                 missed_training_days_count,
                 training_percentage,
                 average_training_days_per_week)
+
+    def calculate_average_training_days_for_this_month(self, month):
+        """Calculate the average training days for this month.
+
+        Args:
+            month(int): month which you want to calculate the average training.
+
+        Returns:
+            float. average training for this month.
+        """
+        days_in_month = monthrange(datetime.today().year, month)[1]
+        training_days_info = TrainingDayInfo.objects.filter(trainee=self.pk)
+        year = datetime.now().year
+        trained_days_count = len(list(filter(
+            lambda training: training.date >= datetime(year=year, month=month, day=1) and training.date <= datetime(year=year, month=month, day=days_in_month), 
+          training_days_info)))
+        if datetime.now().month == month:
+            days_in_month = datetime.now().day
+        average = trained_days_count / days_in_month
+        return (trained_days_count,
+                days_in_month,
+                average)
 
     @property
     def groups(self):

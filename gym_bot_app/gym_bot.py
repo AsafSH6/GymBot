@@ -12,7 +12,8 @@ from gym_bot_app.commands import (AdminCommand,
                                   MyStatisticsCommand,
                                   BotStatisticsCommand,
                                   MotivationQuotesCommand,
-                                  AllTrainingTraineesCommand)
+                                  AllTrainingTraineesCommand,
+                                  MonthRankingCommand)
 
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
@@ -42,6 +43,7 @@ def run_gym_bot(token, logger):
     MyDaysCommand(updater=updater, logger=logger).start()
     TrainedCommand(updater=updater, logger=logger).start()
     RankingCommand(updater=updater, logger=logger).start()
+    MonthRankingCommand(updater=updater, logger=logger).start()
     SelectDaysCommand(updater=updater, logger=logger).start()
     SetCreatureCommand(updater=updater, logger=logger).start()
     MyStatisticsCommand(updater=updater, logger=logger).start()
