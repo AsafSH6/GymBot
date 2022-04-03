@@ -18,9 +18,6 @@ class MonthRankingCommand(Command):
     DEFAULT_COMMAND_NAME = 'month_ranking'
     TRAINEES_LIMIT = 10
 
-    def __init__(self, *args, **kwargs):
-        super(MonthRankingCommand, self).__init__(*args, **kwargs)
-
     @get_group
     def _handler(self, update: Update, context: CallbackContext, group: Group):
         """Override method to handle month ranking command.
@@ -32,31 +29,53 @@ class MonthRankingCommand(Command):
 
         self.logger.info('Ranking statistics command in %s', group)
 
-        month =  ' '.join(context.args)
+        def _get_trainee_properties(trainee):
+            (trained_days_count, days_in_month,
+             average) = trainee.calculate_average_training_days_for_this_month(month)
+            return {
+                'name': trainee.first_name,
+                'trained_days_count': trained_days_count,
+                'days_in_month': days_in_month,
+                'average': average,
+            }
+
+        month = context.args
         if len(month) == 0:
             self.logger.debug('Trainee did not provide month')
             month = datetime.now().month
 
-        elif not any(chr.isdigit() for chr in month) or int(month) <= 0 or int(month) > 12:
+        elif not any(chr.isdigit() for chr in month):
             self.logger.debug('Trainee did not provide legal month')
             update.message.reply_text(quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
             return
 
         month = int(month)
-        ranking = sorted(group.trainees,
-                         key=lambda trainee: trainee.calculate_average_training_days_for_this_month(month)[2],
+
+        if month <= 0 or month > 12:
+            self.logger.debug('Trainee did not provide legal month')
+            update.message.reply_text(
+                quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
+            return
+
+        trainees = list(map(_get_trainee_properties, group.trainees))
+        ranking = sorted(trainees,
+                         key=lambda trainee: trainee['average'],
                          reverse=True)[:self.TRAINEES_LIMIT]
         self.logger.debug('Group month average statistics training is %s', ranking)
 
         msg = '\n'.join(
-            'Ranking for {month} {year}:\n {idx}. {name} <Average {obj[2]} ({obj[0]}/{obj[1]})>'.format(
+            'Ranking for {month} {year}:\n {idx}. {name} <Average {average} ({trained_days_count}/{days_in_month})>'.format(
                 idx=(idx + 1),
-                name=trainee.first_name,
+                name=trainee['name'],
                 month=month_name[month],
                 year=datetime.now().year,
-                obj=trainee.calculate_average_training_days_for_this_month(month)
+                trained_days_count=trainee['trained_days_count'],
+                days_in_month=trainee['days_in_month'],
+                average=trainee['average'],
             )
             for idx, trainee in enumerate(ranking)
         )
         update.message.reply_text(quote=True,
                                   text=msg)
+
+        

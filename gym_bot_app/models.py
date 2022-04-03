@@ -302,14 +302,16 @@ class Trainee(Document):
         """Calculate the average training days for this month.
 
         Args:
-            month(int): month which you want to calculate the average training.
+            month(int): month (1-12) which you want to calculate the average training.
 
-        Returns:
+        Returns.
+            int. number of days trained days in this month.
+            int. number of days in this month.
             float. average training for this month.
         """
-        days_in_month = monthrange(datetime.today().year, month)[1]
-        training_days_info = TrainingDayInfo.objects.filter(trainee=self.pk)
         year = datetime.now().year
+        days_in_month = monthrange(year, month)[1]
+        training_days_info = TrainingDayInfo.objects.filter(trainee=self.pk)
         trained_days_count = len(list(filter(
             lambda training: training.date >= datetime(year=year, month=month, day=1) and training.date <= datetime(year=year, month=month, day=days_in_month), 
           training_days_info)))
