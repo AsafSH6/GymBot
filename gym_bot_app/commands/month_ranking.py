@@ -71,7 +71,7 @@ class MonthRankingCommand(Command):
                 year=datetime.now().year,
                 trained_days_count=trainee['trained_days_count'],
                 days_in_month=trainee['days_in_month'],
-                average=trainee['average'],
+                average='{:.2f}'.format(trainee['average']),
             )
             for idx, trainee in enumerate(ranking)
         )
