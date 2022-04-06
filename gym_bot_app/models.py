@@ -209,17 +209,18 @@ class Trainee(Document):
         )
         return training_day_info, leveled_up
 
-    def get_training_info(self, training_date):
+    def get_training_info(self, training_date, until_training_date = 1):
         """Check trainee training info of given date.
         
         Args:
             training_date(datetime.date | datetime.datetime): date of requested training date.
+            until_training_date(int): number of requested training date
 
         Returns:
             list. all TrainingDayInfo of requested training date.
 
         """
-        next_day = training_date + timedelta(days=1)
+        next_day = training_date + timedelta(days=until_training_date)
         return TrainingDayInfo.objects.filter(trainee=self.pk,
                                               date__gte=training_date,
                                               date__lt=next_day)
@@ -311,10 +312,7 @@ class Trainee(Document):
         """
         year = datetime.now().year
         days_in_month = monthrange(year, month)[1]
-        training_days_info = TrainingDayInfo.objects.filter(trainee=self.pk)
-        trained_days_count = len(list(filter(
-            lambda training: training.date >= datetime(year=year, month=month, day=1) and training.date <= datetime(year=year, month=month, day=days_in_month), 
-          training_days_info)))
+        trained_days_count = len(self.get_training_info(datetime(year=year, month=month, day=1), days_in_month))
         if datetime.now().month == month:
             days_in_month = datetime.now().day
         average = trained_days_count / days_in_month
