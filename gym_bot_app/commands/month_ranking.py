@@ -26,28 +26,31 @@ class MonthRankingCommand(Command):
         Takes top trainees based on their average monthly training.
 
         """
-        self.logger.info('Ranking statistics command in %s', group)
+        self.logger.info('Month ranking statistics command in %s', group)
 
         month = 0
         if len(context.args) == 0:
-            self.logger.debug('Trainee did not provide month')
             month = datetime.now().month
+            self.logger.debug('Trainee did not provide month - using current month (%d)', month)
 
         elif not any(chr.isdigit() for chr in context.args[0]):
-            self.logger.debug('Trainee did not provide legal month')
+            self.logger.debug('Trainee did not provide legal month (month=%s)', context.args[0])
             update.message.reply_text(quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
             return
         else:
             month = int(context.args[0])
 
         if month <= 0 or month > 12:
-            self.logger.debug('Trainee did not provide legal month')
+            self.logger.debug('Trainee did not provide legal month (month=%s)', context.args[0])
             update.message.reply_text(
                 quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
             return
 
-        trainees = [self._get_trainee_properties(trainee, month) for trainee in group.trainees]
-        ranking = sorted(trainees,
+        trainees_properties = [
+            self._get_trainee_properties(trainee=trainee, month=month) 
+            for trainee in group.trainees
+        ]
+        ranking = sorted(trainees_properties,
                          key=lambda trainee: trainee['average'],
                          reverse=True)[:self.TRAINEES_LIMIT]
         self.logger.debug('Group month average statistics training is %s', ranking)
