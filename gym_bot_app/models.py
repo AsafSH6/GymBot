@@ -210,20 +210,20 @@ class Trainee(Document):
         return training_day_info, leveled_up
 
     def get_training_info(self, training_date, until_training_date = 1):
-        """Check trainee training info of given date.
+        """Check trainee training info of given period.
         
         Args:
             training_date(datetime.date | datetime.datetime): date of requested training date.
-            until_training_date(int): number of requested training date
+            until_training_date(int): number of requested training date, default 1.
 
         Returns:
             list. all TrainingDayInfo of requested training date.
 
         """
-        next_day = training_date + timedelta(days=until_training_date)
+        requested_days = training_date + timedelta(days=until_training_date)
         return TrainingDayInfo.objects.filter(trainee=self.pk,
                                               date__gte=training_date,
-                                              date__lt=next_day)
+                                              date__lt=requested_days)
 
     @staticmethod
     def _calculate_training_percentage(num_of_trained_days, num_missed_training_days):
@@ -300,7 +300,7 @@ class Trainee(Document):
                 average_training_days_per_week)
 
     def calculate_average_training_days_for_this_month(self, month):
-        """Calculate the average training days for this month.
+        """Calculate the average training days for the given month.
 
         Args:
             month(int): month (1-12) which you want to calculate the average training.
@@ -310,11 +310,13 @@ class Trainee(Document):
             int. number of days in this month.
             float. average training for this month.
         """
-        year = datetime.now().year
+        date = datetime.now()
+        year = date.year
         days_in_month = monthrange(year, month)[1]
-        trained_days_count = len(self.get_training_info(datetime(year=year, month=month, day=1), days_in_month))
-        if datetime.now().month == month:
-            days_in_month = datetime.now().day
+        training_date = datetime(year=year, month=month, day=1)
+        trained_days_count = len(self.get_training_info(training_date=training_date, until_training_date=days_in_month))
+        if date.month == month:
+            days_in_month = date.day
         average = trained_days_count / days_in_month
         return (trained_days_count,
                 days_in_month,
