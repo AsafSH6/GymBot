@@ -157,6 +157,17 @@ class Trainee(Document):
     def is_training_in_day(self, day_name):
         return self.training_days.get(name=day_name).selected
 
+    def get_mention_string(self):
+        """Create telegram-style user mention string.
+
+        Note: When using this you need to set the 'parse_mode' of the
+            'send_message' function to 'markdown' mode.
+        
+        Returns:
+            str. A telegram-style user mention.
+        """
+        return f"[@{self.first_name}](tg://user?id={self.id})"
+
     def add_training_info(self, training_date, trained):
         """Add training info to trainee.
 

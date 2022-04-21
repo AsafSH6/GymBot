@@ -1,6 +1,8 @@
 from datetime import time, timedelta
 from typing import List
 
+from telegram import ParseMode
+
 from gym_bot_app.models import Group, Trainee
 from gym_bot_app.tasks import Task
 from gym_bot_app.decorators import repeats, run_for_all_groups
@@ -40,7 +42,7 @@ class GoToGymTask(Task):
             return
 
         go_to_gym_msg = self._get_go_to_gym_msg(trainees=relevant_trainees)
-        self.updater.bot.send_message(chat_id=group.id, text=go_to_gym_msg)
+        self.updater.bot.send_message(chat_id=group.id, text=go_to_gym_msg, parse_mode=ParseMode.MARKDOWN)
 
     def _get_go_to_gym_msg(self, trainees: List[Trainee]) -> str:
         """Generate go to gym message based on the given trainees.
@@ -52,7 +54,7 @@ class GoToGymTask(Task):
             str. message of go to gym with the given trainees.
 
         """
-        training_today_msg = ' '.join(trainee.first_name for trainee in trainees)
+        training_today_msg = ' '.join(trainee.get_mention_string() for trainee in trainees)
 
         if len(trainees) > 1:
             self.logger.debug('More than one trainee therefore creating plural msg')

@@ -1,8 +1,9 @@
 from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from gym_bot_app import WEIGHT_LIFTER_EMOJI
+from gym_bot_app import DISAPPOINTED_FACE_EMOJI, MUSCLE_EMOJI, WEIGHT_LIFTER_EMOJI
 from gym_bot_app.models import Day
+from gym_bot_app.utils import get_dates_of_week
 
 
 YES_RESPONSE = 'yes'
@@ -53,11 +54,19 @@ def trainee_select_days_inline_keyboard(trainee, callback_identifier):
 
     """
     keyboard = []
+    dates_of_week = get_dates_of_week(datetime.today())
     for day in trainee.training_days:
         training_day = day.name
+        training_date = dates_of_week[trainee.training_days.index(day)]
 
         if day.selected:
-            training_day += ' ' + WEIGHT_LIFTER_EMOJI
+            training_day_info = trainee.get_training_info(training_date)
+            if not training_day_info:
+                training_day += ' ' + WEIGHT_LIFTER_EMOJI
+            elif training_day_info[0].trained:
+                training_day += ' ' + MUSCLE_EMOJI
+            else:
+                training_day += ' ' + DISAPPOINTED_FACE_EMOJI
 
         callback_data = '{callback_identifier} {id} {day_name}'.format(id=trainee.id,
                                                                        day_name=day.name,

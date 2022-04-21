@@ -1,7 +1,7 @@
 from datetime import time, timedelta, datetime
 from typing import List
 
-from telegram import Update
+from telegram import Update, ParseMode
 from telegram.ext import CallbackQueryHandler, CallbackContext
 
 from gym_bot_app.models import Trainee, Group
@@ -65,7 +65,8 @@ class WentToGymTask(Task):
             went_to_gym_keyboard = self.get_went_to_gym_keyboard()
             self.updater.bot.send_message(chat_id=group.id,
                                           text=went_to_gym_msg,
-                                          reply_markup=went_to_gym_keyboard)
+                                          reply_markup=went_to_gym_keyboard,
+                                          parse_mode=ParseMode.MARKDOWN)
         else:
             self.logger.debug('There are no relevant trainees')
 
@@ -162,7 +163,7 @@ class WentToGymTask(Task):
             str. message of went to gym with the given trainees.
 
         """
-        training_today_msg = ' '.join(trainee.first_name for trainee in trainees)
+        training_today_msg = ' '.join(trainee.get_mention_string() for trainee in trainees)
 
         if len(trainees) > 1:
             self.logger.debug('More than one trainee therefore creating plural msg')

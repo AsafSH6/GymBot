@@ -1,5 +1,5 @@
 # encoding: utf-8
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import telegram
 
@@ -46,7 +46,8 @@ def trainee_already_marked_training_date(trainee, training_date):
         bool. True if trainee already marked the given date, otherwise False.
 
     """
-    return bool(trainee.get_training_info(training_date=training_date))
+    training_info_list = trainee.get_training_info(training_date=training_date)
+    return any(info.trained for info in training_info_list)
 
 
 def get_trainees_that_selected_today_and_did_not_train_yet(group):
@@ -94,3 +95,18 @@ def get_update_from_args(args):
     """
     update = find_instance_in_args(telegram.update.Update, args)
     return update
+
+def get_dates_of_week(date):
+    """Returns a list of the dates of the week containing the given day.
+
+    A week begins from Sunday and ends on Saturday.
+    
+    Args:
+        date(datetime): a day from the requested week.
+    
+    Returns:
+      list. a list of datetime objects of dates in the week containing the given day.
+    """
+    day_idx = (date.weekday() + 1) % 7  # turn sunday into 0, monday into 1, etc.
+    sunday = date.date() - timedelta(days=day_idx)
+    return [sunday + timedelta(days = i) for i in range(7)]
