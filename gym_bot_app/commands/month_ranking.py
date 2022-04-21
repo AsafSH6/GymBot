@@ -17,7 +17,7 @@ class MonthRankingCommand(Command):
     """
     DEFAULT_COMMAND_NAME = 'month_ranking'
     TRAINEES_LIMIT = 10
-    DID_NOT_PROVIDE_LEGAL_MONTH = 'לא הכנסת חדוש תקין יא בוט'
+    DID_NOT_PROVIDE_LEGAL_MONTH = 'לא הכנסת חודש תקין יא בוט'
 
     @get_group
     def _handler(self, update: Update, context: CallbackContext, group: Group):
@@ -32,19 +32,18 @@ class MonthRankingCommand(Command):
         if len(context.args) == 0:
             month = datetime.now().month
             self.logger.debug('Trainee did not provide month - using current month (%d)', month)
-
-        elif not any(chr.isdigit() for chr in context.args[0]):
-            self.logger.debug('Trainee did not provide legal month (month=%s)', context.args[0])
-            update.message.reply_text(quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
-            return
         else:
-            month = int(context.args[0])
-
-        if month <= 0 or month > 12:
-            self.logger.debug('Trainee did not provide legal month (month=%s)', context.args[0])
-            update.message.reply_text(
-                quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
-            return
+            gaven_month = context.args[0]
+            if not any(chr.isdigit() for chr in gaven_month):
+                self.logger.debug('Trainee did not provide legal month (month=%s)', gaven_month)
+                update.message.reply_text(quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
+                return
+            month = int(gaven_month)
+            if month <= 0 or month > 12:
+                self.logger.debug('Trainee did not provide legal month (month=%s)', gaven_month)
+                update.message.reply_text(
+                    quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
+                return
 
         trainees_properties = [
             self._get_trainee_properties(trainee=trainee, month=month) 
