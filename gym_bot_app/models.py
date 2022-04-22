@@ -313,11 +313,13 @@ class Trainee(Document):
         date = datetime.now()
         year = date.year
         days_in_month = monthrange(year, month)[1]
-        training_date = datetime(year=year, month=month, day=1)
-        trained_days_count = len(self.get_training_info(training_date=training_date, until_training_date=days_in_month))
         if date.month == month:
             days_in_month = date.day
+
+        training_date = datetime(year=year, month=month, day=1)
+        trained_days_count = self.get_training_info(training_date=training_date, until_training_date=days_in_month).count()
         average = trained_days_count / days_in_month
+
         return (trained_days_count,
                 days_in_month,
                 average)
