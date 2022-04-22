@@ -28,19 +28,19 @@ class MonthRankingCommand(Command):
         """
         self.logger.info('Month ranking statistics command in %s', group)
 
-        month = 0
         if len(context.args) == 0:
             month = datetime.now().month
             self.logger.debug('Trainee did not provide month - using current month (%d)', month)
         else:
-            gaven_month = context.args[0]
-            if not any(chr.isdigit() for chr in gaven_month):
-                self.logger.debug('Trainee did not provide legal month (month=%s)', gaven_month)
+            selected_month = context.args[0]
+            if not any(chr.isdigit() for chr in selected_month):
+                self.logger.debug('Trainee did not provide legal month (month=%s)', selected_month)
                 update.message.reply_text(quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
                 return
-            month = int(gaven_month)
+
+            month = int(selected_month)
             if month <= 0 or month > 12:
-                self.logger.debug('Trainee did not provide legal month (month=%s)', gaven_month)
+                self.logger.debug('Trainee did not provide legal month (month=%s)', selected_month)
                 update.message.reply_text(
                     quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
                 return
