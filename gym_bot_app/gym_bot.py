@@ -1,6 +1,5 @@
-import datetime
-import logging
 import os
+import logging
 
 from telegram.ext import Updater
 
@@ -17,6 +16,7 @@ from gym_bot_app.commands import (AdminCommand,
 
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
+                               TaskTypeToInstance,
                                NewWeekSelectDaysTask,
                                DidNotTrainUpdaterTask)
 
@@ -39,22 +39,23 @@ def run_gym_bot(token, logger):
         NewWeekSelectDaysTask(updater=updater, logger=logger).start(),
         DidNotTrainUpdaterTask(updater=updater, logger=logger).start(),
     ]
-    tasks = {
-        task.__class__: task
+
+    task_type_to_instance: TaskTypeToInstance = {
+        task.__class__.__name__: task
         for task in tasks
     }
 
     """ Commands """
-    AdminCommand(tasks=tasks, updater=updater, logger=logger).start()
-    MyDaysCommand(tasks=tasks, updater=updater, logger=logger).start()
-    TrainedCommand(tasks=tasks, updater=updater, logger=logger).start()
-    RankingCommand(tasks=tasks, updater=updater, logger=logger).start()
-    SelectDaysCommand(tasks=tasks, updater=updater, logger=logger).start()
-    SetCreatureCommand(tasks=tasks, updater=updater, logger=logger).start()
-    MyStatisticsCommand(tasks=tasks, updater=updater, logger=logger).start()
-    BotStatisticsCommand(tasks=tasks, updater=updater, logger=logger).start()
-    MotivationQuotesCommand(tasks=tasks, updater=updater, logger=logger).start()
-    AllTrainingTraineesCommand(tasks=tasks, updater=updater, logger=logger).start(command_name='all_the_botim')
+    AdminCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MyDaysCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    TrainedCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    RankingCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    SelectDaysCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    SetCreatureCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MyStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    BotStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MotivationQuotesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    AllTrainingTraineesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()

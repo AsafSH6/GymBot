@@ -118,8 +118,7 @@ class TrainedCommand(Command):
         """
         now = datetime.now()
         today = now.today().strftime('%A')
-        # TODO: type of NewWeekSelectDaysTask
-        new_week_select_days_task = self.tasks.get(NewWeekSelectDaysTask)
+        new_week_select_days_task = self.tasks.get(NewWeekSelectDaysTask.__name__)
 
         return (new_week_select_days_task is not None
                 and new_week_select_days_task.target_day == today

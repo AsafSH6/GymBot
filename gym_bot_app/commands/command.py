@@ -1,10 +1,11 @@
-from typing import Dict, Type
 import logging
+import typing
 
 from telegram import Update
 from telegram.ext import CommandHandler, CallbackContext, Updater
 
-from gym_bot_app.tasks import Task
+if typing.TYPE_CHECKING:
+    from gym_bot_app.tasks import TaskTypeToInstance
 
 
 class Command(object):
@@ -15,10 +16,8 @@ class Command(object):
     """
     DEFAULT_COMMAND_NAME = NotImplemented
 
-    # TODO: convert tasks to to TypedDict
-    # https://adamj.eu/tech/2021/05/10/python-type-hints-how-to-use-typeddict/
-    def __init__(self, tasks: Dict[Type[Task], Task], updater: Updater, logger: logging.Logger, pass_args: bool = False):
-        self.tasks = tasks
+    def __init__(self, tasks: 'TaskTypeToInstance', updater: Updater, logger: logging.Logger, pass_args: bool = False):
+        self.tasks: 'TaskTypeToInstance' = tasks
         self.updater = updater
         self.logger = logger
         self.pass_args = pass_args
