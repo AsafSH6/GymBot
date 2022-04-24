@@ -28,8 +28,9 @@ class MonthRankingCommand(Command):
         """
         self.logger.info('Month ranking statistics command in %s', group)
 
+        date = datetime.now()
         if len(context.args) == 0:
-            month = datetime.now().month
+            month = date.month
             self.logger.debug('Trainee did not provide month - using current month (%d)', month)
         else:
             selected_month = context.args[0]
@@ -52,9 +53,9 @@ class MonthRankingCommand(Command):
         ranking = sorted(trainees_properties,
                          key=lambda trainee: trainee['average'],
                          reverse=True)[:self.TRAINEES_LIMIT]
-        self.logger.debug('Group month average statistics training is %s', ranking)
+        self.logger.debug('Group month %s average statistics training is %s', month, ranking)
 
-        msg = 'Ranking for {month} {year}:\n'.format( month=month_name[month], year=datetime.now().year)
+        msg = 'Ranking for {month} {year}:\n'.format(month=month_name[month], year=date.year)
         msg += '\n'.join(
             '{idx}. {name} <Average {average} ({trained_days_count}/{days_in_month})>'.format(
                 idx=(idx + 1),
