@@ -46,7 +46,7 @@ def trainee_already_marked_training_date(trainee, training_date):
         bool. True if trainee already marked the given date, otherwise False.
 
     """
-    training_info_list = trainee.get_training_info(training_date=training_date)
+    training_info_list = trainee.get_training_info(start_training_date=training_date)
     return any(info.trained for info in training_info_list)
 
 

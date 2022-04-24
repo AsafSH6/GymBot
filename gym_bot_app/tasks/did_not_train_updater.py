@@ -44,7 +44,7 @@ class DidNotTrainUpdaterTask(Task):
             # The use of timedelta here is to make sure that we remain within the same day we wanted to
             not_trained_time = (datetime.today() - timedelta(hours=2)).date()
             for trainee in relevant_trainees:
-                if not trainee.get_training_info(training_date=not_trained_time):
+                if not trainee.get_training_info(start_training_date=not_trained_time):
                     trainee.add_training_info(training_date=not_trained_time, trained=False)
             did_not_go_to_gym_msg = self._get_did_not_go_to_gym_msg(trainees)
             self.updater.bot.send_message(chat_id=group.id, text=did_not_go_to_gym_msg, parse_mode=ParseMode.MARKDOWN)

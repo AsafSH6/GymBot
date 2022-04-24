@@ -185,7 +185,7 @@ class Trainee(Document):
             RuntimeError. in case trainee already have training day info in the given date.
 
         """
-        if self.get_training_info(training_date=training_date):
+        if self.get_training_info(start_training_date=training_date):
             raise RuntimeError('Already created training day info for today.')
 
         leveled_up = False
@@ -209,20 +209,20 @@ class Trainee(Document):
         )
         return training_day_info, leveled_up
 
-    def get_training_info(self, training_date, until_training_date = 1):
+    def get_training_info(self, start_training_date, num_of_training_days=1):
         """Check trainee training info of given period.
         
         Args:
-            training_date(datetime.date | datetime.datetime): date of requested training date.
-            until_training_date(int): number of requested training date, default 1.
+            start_training_date(datetime.date | datetime.datetime): date of requested training date.
+            num_of_training_days(int): number of requested training date, default 1.
 
         Returns:
             list. all TrainingDayInfo of requested training date.
 
         """
-        requested_days = training_date + timedelta(days=until_training_date)
+        requested_days = start_training_date + timedelta(days=num_of_training_days)
         return TrainingDayInfo.objects.filter(trainee=self.pk,
-                                              date__gte=training_date,
+                                              date__gte=start_training_date,
                                               date__lt=requested_days)
 
     @staticmethod
@@ -316,8 +316,8 @@ class Trainee(Document):
         if date.month == month:
             days_in_month = date.day
 
-        training_date = datetime(year=year, month=month, day=1)
-        trained_days_count = self.get_training_info(training_date=training_date, until_training_date=days_in_month).count()
+        start_training_date = datetime(year=year, month=month, day=1)
+        trained_days_count = self.get_training_info(start_training_date=start_training_date, num_of_training_days=days_in_month).count()
         average = trained_days_count / days_in_month
 
         return (trained_days_count,
