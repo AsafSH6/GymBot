@@ -7,6 +7,7 @@ from gym_bot_app.commands import Command
 from gym_bot_app import FACEPALMING_EMOJI, WEIGHT_LIFTER_EMOJI, TROPHY_EMOJI
 from gym_bot_app.decorators import get_trainee_and_group
 from gym_bot_app.models import Trainee, Group
+from gym_bot_app.tasks import NewWeekSelectDaysTask
 from gym_bot_app.utils import trainee_already_marked_training_date
 
 
@@ -63,10 +64,12 @@ class TrainedCommand(Command):
                 update.message.reply_text(quote=False,
                                           text=group_leveled_up_msg)
 
-            today_training_day = trainee.training_days.get(name=today_date.strftime('%A'))
-
-            if not today_training_day.selected:  # mark today as selected if it was not selected before
+            # Mark today as selected if it is not the time after new week select days task ran and before next day.
+            # Read _is_trained_after_new_week_select_days docs for more info.
+            if not self._is_trained_after_new_week_select_days():
+                today_training_day = trainee.training_days.get(name=today_date.strftime('%A'))
                 today_training_day.selected = True
+                self.logger.info('Marked today as selected')
 
             trainee.save()
             group.save()
@@ -98,3 +101,27 @@ class TrainedCommand(Command):
                     context.bot.send_message(chat_id=other_group.id, text=other_group_leveled_up_msg)
 
                 other_group.save()
+
+    def _is_trained_after_new_week_select_days(self) -> bool:
+        """Check whether the time now is after new week select days task but before the next day.
+
+        There is an edge case where the trainee mark the day as trained in the time after new week days task ran and
+        unselected all training days but before the day was over.
+        In this case, the day will be marked as selected and in the next week the bot will remain the trainee
+        to train even though he/she didn't select the day for training (it was selected because trained command ran the
+        week before).
+
+        Returns:
+            True. if the current time is after new week select days task ran but before the next day.
+            False. otherwise.
+
+        """
+        now = datetime.now()
+        today = now.today().strftime('%A')
+        # TODO: type of NewWeekSelectDaysTask
+        new_week_select_days_task = self.tasks.get(NewWeekSelectDaysTask)
+
+        return (new_week_select_days_task is not None
+                and new_week_select_days_task.target_day == today
+                and now.time() > new_week_select_days_task.target_time)
+

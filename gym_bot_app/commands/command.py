@@ -1,5 +1,10 @@
+from typing import Dict, Type
+import logging
+
 from telegram import Update
-from telegram.ext import CommandHandler, CallbackContext
+from telegram.ext import CommandHandler, CallbackContext, Updater
+
+from gym_bot_app.tasks import Task
 
 
 class Command(object):
@@ -7,13 +12,13 @@ class Command(object):
 
     DEFAULT_COMMAND_NAME(str): default name of the command that will be used in telegram chat in order to execute this command.
 
-    updater(telegram.ext.Updater): bots' Updater instance.
-    logger(logging.logger): logger to write to.
-
     """
     DEFAULT_COMMAND_NAME = NotImplemented
 
-    def __init__(self, updater, logger, pass_args=False):
+    # TODO: convert tasks to to TypedDict
+    # https://adamj.eu/tech/2021/05/10/python-type-hints-how-to-use-typeddict/
+    def __init__(self, tasks: Dict[Type[Task], Task], updater: Updater, logger: logging.Logger, pass_args: bool = False):
+        self.tasks = tasks
         self.updater = updater
         self.logger = logger
         self.pass_args = pass_args

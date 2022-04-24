@@ -2,7 +2,6 @@ from datetime import time, timedelta, datetime
 from typing import List
 
 from telegram import ParseMode
-from telegram.ext import CallbackQueryHandler
 
 from gym_bot_app.models import Trainee, Group
 from gym_bot_app.tasks import Task
@@ -46,12 +45,11 @@ class DidNotTrainUpdaterTask(Task):
             for trainee in relevant_trainees:
                 if not trainee.get_training_info(training_date=not_trained_time):
                     trainee.add_training_info(training_date=not_trained_time, trained=False)
-            did_not_go_to_gym_msg = self._get_did_not_go_to_gym_msg(trainees)
+            did_not_go_to_gym_msg = self._get_did_not_go_to_gym_msg(relevant_trainees)
             self.updater.bot.send_message(chat_id=group.id, text=did_not_go_to_gym_msg, parse_mode=ParseMode.MARKDOWN)
                 
         else:
             self.logger.debug('There are no trainees that said they would train and did not')
-
 
     def _get_did_not_go_to_gym_msg(self, trainees: List[Trainee]):
         """Generate did not go to gym message based on the given trainees.

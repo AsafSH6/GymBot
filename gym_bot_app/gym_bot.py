@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 
@@ -32,22 +33,28 @@ def run_gym_bot(token, logger):
     updater = Updater(token=token)
 
     """ Tasks """
-    GoToGymTask(updater=updater, logger=logger).start()
-    WentToGymTask(updater=updater, logger=logger).start()
-    NewWeekSelectDaysTask(updater=updater, logger=logger).start()
-    DidNotTrainUpdaterTask(updater=updater, logger=logger).start()
+    tasks = [
+        GoToGymTask(updater=updater, logger=logger).start(),
+        WentToGymTask(updater=updater, logger=logger).start(),
+        NewWeekSelectDaysTask(updater=updater, logger=logger).start(),
+        DidNotTrainUpdaterTask(updater=updater, logger=logger).start(),
+    ]
+    tasks = {
+        task.__class__: task
+        for task in tasks
+    }
 
     """ Commands """
-    AdminCommand(updater=updater, logger=logger).start()
-    MyDaysCommand(updater=updater, logger=logger).start()
-    TrainedCommand(updater=updater, logger=logger).start()
-    RankingCommand(updater=updater, logger=logger).start()
-    SelectDaysCommand(updater=updater, logger=logger).start()
-    SetCreatureCommand(updater=updater, logger=logger).start()
-    MyStatisticsCommand(updater=updater, logger=logger).start()
-    BotStatisticsCommand(updater=updater, logger=logger).start()
-    MotivationQuotesCommand(updater=updater, logger=logger).start()
-    AllTrainingTraineesCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
+    AdminCommand(tasks=tasks, updater=updater, logger=logger).start()
+    MyDaysCommand(tasks=tasks, updater=updater, logger=logger).start()
+    TrainedCommand(tasks=tasks, updater=updater, logger=logger).start()
+    RankingCommand(tasks=tasks, updater=updater, logger=logger).start()
+    SelectDaysCommand(tasks=tasks, updater=updater, logger=logger).start()
+    SetCreatureCommand(tasks=tasks, updater=updater, logger=logger).start()
+    MyStatisticsCommand(tasks=tasks, updater=updater, logger=logger).start()
+    BotStatisticsCommand(tasks=tasks, updater=updater, logger=logger).start()
+    MotivationQuotesCommand(tasks=tasks, updater=updater, logger=logger).start()
+    AllTrainingTraineesCommand(tasks=tasks, updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()
