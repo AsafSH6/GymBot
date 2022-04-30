@@ -77,6 +77,7 @@ if __name__ == '__main__':
     connect(host=db_con_string)
 
     logger = logging.getLogger()
+    # logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
     run_gym_bot(token, logger)

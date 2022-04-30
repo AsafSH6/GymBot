@@ -23,7 +23,7 @@ class MonthRankingCommand(Command):
     def _handler(self, update: Update, context: CallbackContext, group: Group):
         """Override method to handle month ranking command.
 
-        Takes top trainees based on their average monthly training.
+        Takes top trainees based on their statistics monthly training.
 
         """
         self.logger.info('Month ranking statistics command in %s', group)
@@ -34,7 +34,7 @@ class MonthRankingCommand(Command):
             self.logger.debug('Trainee did not provide month - using current month (%d)', month)
         else:
             selected_month = context.args[0]
-            if not any(chr.isdigit() for chr in selected_month):
+            if not any(s.isdigit() for s in selected_month):
                 self.logger.debug('Trainee did not provide legal month (month=%s)', selected_month)
                 update.message.reply_text(quote=True, text=self.DID_NOT_PROVIDE_LEGAL_MONTH)
                 return
@@ -47,34 +47,37 @@ class MonthRankingCommand(Command):
                 return
 
         trainees_properties = [
-            self._get_trainee_properties(trainee=trainee, month=month) 
+            self._get_trainee_properties(trainee=trainee, month=month)
             for trainee in group.trainees
         ]
         ranking = sorted(trainees_properties,
-                         key=lambda trainee: trainee['average'],
+                         key=lambda trainee: trainee['training_percentage'],
                          reverse=True)[:self.TRAINEES_LIMIT]
-        self.logger.debug('Group month %s average statistics training is %s', month, ranking)
+        self.logger.debug('Group month %s statistics training is %s', month, ranking)
 
         msg = 'Ranking for {month} {year}:\n'.format(month=month_name[month], year=date.year)
         msg += '\n'.join(
-            '{idx}. {name} <Average {average} ({trained_days_count}/{days_in_month})>'.format(
+            '{idx}. {name} <{training_percentage}% ({trained_days_count}/{days_in_month})>'.format(
                 idx=(idx + 1),
-                name=trainee['name'],
-                trained_days_count=trainee['trained_days_count'],
-                days_in_month=trainee['days_in_month'],
-                average='{:.2f}'.format(trainee['average']),
+                name=trainee_rank['name'],
+                trained_days_count=trainee_rank['trained_days_count'],
+                days_in_month=trainee_rank['days_in_month'],
+                training_percentage=trainee_rank['training_percentage'],
             )
-            for idx, trainee in enumerate(ranking)
+            for idx, trainee_rank in enumerate(ranking)
         )
         update.message.reply_text(quote=True,
                                   text=msg)
 
-    def _get_trainee_properties(self, trainee, month):
-        (trained_days_count, days_in_month,
-            average) = trainee.calculate_average_training_days_for_this_month(month)
+    @staticmethod
+    def _get_trainee_properties(trainee, month):
+        (trained_days_count,
+         days_in_month,
+         training_percentage) = trainee.calculate_statistics_training_days_for_this_month(month)
+
         return {
             'name': trainee.first_name,
             'trained_days_count': trained_days_count,
             'days_in_month': days_in_month,
-            'average': average,
+            'training_percentage': training_percentage,
         }
