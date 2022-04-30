@@ -53,6 +53,8 @@ class Task(object):
                         kwargs=kwargs).start()
         self.logger.info('Targeted task %s to run in %s seconds', self.__class__.__name__, start_time)
 
+        return self
+
     def _seconds_until_day_and_time(self, target_day_name, target_time):
         """Calculate the number of seconds until the next occur of the target day and time.
 

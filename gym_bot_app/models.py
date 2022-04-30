@@ -299,16 +299,16 @@ class Trainee(Document):
                 training_percentage,
                 average_training_days_per_week)
 
-    def calculate_average_training_days_for_this_month(self, month):
-        """Calculate the average training days for the given month.
+    def calculate_statistics_training_days_for_this_month(self, month):
+        """Calculate the statistics training days for the given month.
 
         Args:
-            month(int): month (1-12) which you want to calculate the average training.
+            month(int): month (1-12) which you want to calculate the statistics training.
 
         Returns.
             int. number of days trained days in this month.
             int. number of days in this month.
-            float. average training for this month.
+            float. training percentage for this month.
         """
         date = datetime.now()
         year = date.year
@@ -318,11 +318,12 @@ class Trainee(Document):
 
         start_training_date = datetime(year=year, month=month, day=1)
         trained_days_count = self.get_training_info(start_training_date=start_training_date, num_of_training_days=days_in_month).count()
-        average = trained_days_count / days_in_month
+        if trained_days_count == 0:
+            training_percentage = 0
+        else:
+            training_percentage = round(trained_days_count / (days_in_month / 100), 1)
 
-        return (trained_days_count,
-                days_in_month,
-                average)
+        return trained_days_count, days_in_month, training_percentage
 
     @property
     def groups(self):

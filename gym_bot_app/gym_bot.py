@@ -1,5 +1,5 @@
-import logging
 import os
+import logging
 
 from telegram.ext import Updater
 
@@ -17,6 +17,7 @@ from gym_bot_app.commands import (AdminCommand,
 
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
+                               TaskTypeToInstance,
                                NewWeekSelectDaysTask,
                                DidNotTrainUpdaterTask)
 
@@ -33,23 +34,30 @@ def run_gym_bot(token, logger):
     updater = Updater(token=token)
 
     """ Tasks """
-    GoToGymTask(updater=updater, logger=logger).start()
-    WentToGymTask(updater=updater, logger=logger).start()
-    NewWeekSelectDaysTask(updater=updater, logger=logger).start()
-    DidNotTrainUpdaterTask(updater=updater, logger=logger).start()
+    tasks = [
+        GoToGymTask(updater=updater, logger=logger).start(),
+        WentToGymTask(updater=updater, logger=logger).start(),
+        NewWeekSelectDaysTask(updater=updater, logger=logger).start(),
+        DidNotTrainUpdaterTask(updater=updater, logger=logger).start(),
+    ]
+
+    task_type_to_instance: TaskTypeToInstance = {
+        task.__class__.__name__: task
+        for task in tasks
+    }
 
     """ Commands """
-    AdminCommand(updater=updater, logger=logger).start()
-    MyDaysCommand(updater=updater, logger=logger).start()
-    TrainedCommand(updater=updater, logger=logger).start()
-    RankingCommand(updater=updater, logger=logger).start()
-    MonthRankingCommand(updater=updater, logger=logger).start()
-    SelectDaysCommand(updater=updater, logger=logger).start()
-    SetCreatureCommand(updater=updater, logger=logger).start()
-    MyStatisticsCommand(updater=updater, logger=logger).start()
-    BotStatisticsCommand(updater=updater, logger=logger).start()
-    MotivationQuotesCommand(updater=updater, logger=logger).start()
-    AllTrainingTraineesCommand(updater=updater, logger=logger).start(command_name='all_the_botim')
+    AdminCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MyDaysCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    TrainedCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    RankingCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    SelectDaysCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    SetCreatureCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MonthRankingCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MyStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    BotStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    MotivationQuotesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    AllTrainingTraineesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start(command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()
@@ -69,6 +77,7 @@ if __name__ == '__main__':
     connect(host=db_con_string)
 
     logger = logging.getLogger()
+    # logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
     run_gym_bot(token, logger)

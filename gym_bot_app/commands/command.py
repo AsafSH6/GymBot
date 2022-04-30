@@ -1,5 +1,11 @@
+import logging
+import typing
+
 from telegram import Update
-from telegram.ext import CommandHandler, CallbackContext
+from telegram.ext import CommandHandler, CallbackContext, Updater
+
+if typing.TYPE_CHECKING:
+    from gym_bot_app.tasks import TaskTypeToInstance
 
 
 class Command(object):
@@ -7,13 +13,11 @@ class Command(object):
 
     DEFAULT_COMMAND_NAME(str): default name of the command that will be used in telegram chat in order to execute this command.
 
-    updater(telegram.ext.Updater): bots' Updater instance.
-    logger(logging.logger): logger to write to.
-
     """
     DEFAULT_COMMAND_NAME = NotImplemented
 
-    def __init__(self, updater, logger, pass_args=False):
+    def __init__(self, tasks: 'TaskTypeToInstance', updater: Updater, logger: logging.Logger, pass_args: bool = False):
+        self.tasks: 'TaskTypeToInstance' = tasks
         self.updater = updater
         self.logger = logger
         self.pass_args = pass_args

@@ -16,7 +16,7 @@ from gym_bot_app.tasks import (GoToGymTask,
 class AdminCommand(Command):
     """Telegram gym bot admin command.
 
-    Allows to execute admin commands.
+    Allows executing admin commands.
 
     Options:
         --run-task task_name: run the given task right now.
