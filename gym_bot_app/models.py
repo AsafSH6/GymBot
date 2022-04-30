@@ -1,5 +1,6 @@
 import math
 from datetime import datetime, timedelta
+from calendar import monthrange
 
 from mongoengine import (
     Document,
@@ -184,7 +185,7 @@ class Trainee(Document):
             RuntimeError. in case trainee already have training day info in the given date.
 
         """
-        if self.get_training_info(training_date=training_date):
+        if self.get_training_info(start_training_date=training_date):
             raise RuntimeError('Already created training day info for today.')
 
         leveled_up = False
@@ -208,20 +209,21 @@ class Trainee(Document):
         )
         return training_day_info, leveled_up
 
-    def get_training_info(self, training_date):
-        """Check trainee training info of given date.
+    def get_training_info(self, start_training_date, num_of_training_days=1):
+        """Check trainee training info of given period.
         
         Args:
-            training_date(datetime.date | datetime.datetime): date of requested training date.
+            start_training_date(datetime.date | datetime.datetime): date of requested training date.
+            num_of_training_days(int): number of requested training date, default 1.
 
         Returns:
             list. all TrainingDayInfo of requested training date.
 
         """
-        next_day = training_date + timedelta(days=1)
+        requested_days = start_training_date + timedelta(days=num_of_training_days)
         return TrainingDayInfo.objects.filter(trainee=self.pk,
-                                              date__gte=training_date,
-                                              date__lt=next_day)
+                                              date__gte=start_training_date,
+                                              date__lt=requested_days)
 
     @staticmethod
     def _calculate_training_percentage(num_of_trained_days, num_missed_training_days):
@@ -296,6 +298,31 @@ class Trainee(Document):
                 missed_training_days_count,
                 training_percentage,
                 average_training_days_per_week)
+
+    def calculate_average_training_days_for_this_month(self, month):
+        """Calculate the average training days for the given month.
+
+        Args:
+            month(int): month (1-12) which you want to calculate the average training.
+
+        Returns.
+            int. number of days trained days in this month.
+            int. number of days in this month.
+            float. average training for this month.
+        """
+        date = datetime.now()
+        year = date.year
+        days_in_month = monthrange(year, month)[1]
+        if date.month == month:
+            days_in_month = date.day
+
+        start_training_date = datetime(year=year, month=month, day=1)
+        trained_days_count = self.get_training_info(start_training_date=start_training_date, num_of_training_days=days_in_month).count()
+        average = trained_days_count / days_in_month
+
+        return (trained_days_count,
+                days_in_month,
+                average)
 
     @property
     def groups(self):
