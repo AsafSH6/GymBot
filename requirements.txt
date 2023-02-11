@@ -18,7 +18,7 @@ executing==0.8.3
 future==0.16.0
 ipaddress==1.0.23
 ipdb==0.13.9
-ipython==8.3.0
+ipython==8.10.0
 ipython-genutils==0.2.0
 jedi==0.17.2
 matplotlib-inline==0.1.3
