@@ -3,4 +3,5 @@ backups/
 *.pyc
 *.log
 t.py
-venv/
+venv*
+build_instructions.txt

@@ -2,3 +2,5 @@
 */venv*
 */.git*
 */.idea*
+build
+build_instructions.txt
