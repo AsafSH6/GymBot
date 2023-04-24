@@ -8,7 +8,7 @@ cachetools==4.2.2
 certifi==2018.1.18
 cffi==1.14.3
 colorama==0.3.9
-cryptography==3.3.2
+cryptography==39.0.1
 decorator==4.2.1
 dnspython==1.16.0
 emoji==0.4.5
