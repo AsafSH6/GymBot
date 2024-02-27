@@ -3,6 +3,7 @@ import logging
 
 from telegram.ext import Updater
 
+from gym_bot_app.background_http_server import run_simple_http_server_on_background
 from gym_bot_app.commands import (AdminCommand,
                                   MyDaysCommand,
                                   TrainedCommand,
@@ -20,7 +21,6 @@ from gym_bot_app.tasks import (GoToGymTask,
                                TaskTypeToInstance,
                                NewWeekSelectDaysTask,
                                DidNotTrainUpdaterTask)
-
 
 MSG_TIMEOUT = 20
 
@@ -57,7 +57,8 @@ def run_gym_bot(token, logger):
     MyStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     BotStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     MotivationQuotesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
-    AllTrainingTraineesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start(command_name='all_the_botim')
+    AllTrainingTraineesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start(
+        command_name='all_the_botim')
 
     updater.start_polling(timeout=MSG_TIMEOUT)
     updater.idle()
@@ -72,12 +73,19 @@ if __name__ == '__main__':
 
     token = os.environ['BOT_TOKEN']
     db_con_string = os.environ['MONGODB_URL_CON']
+    should_run_simple_http_server = bool(int(os.getenv('RUN_SIMPLE_HTTP_SERVER', '0')))
 
     from mongoengine import connect
+
     connect(host=db_con_string)
 
     logger = logging.getLogger()
     # logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
-    run_gym_bot(token, logger)
+    close_http_server_callback = run_simple_http_server_on_background(logger, should_run_simple_http_server)
+
+    try:
+        run_gym_bot(token, logger)
+    finally:
+        close_http_server_callback()
