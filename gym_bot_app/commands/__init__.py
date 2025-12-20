@@ -9,4 +9,5 @@ from gym_bot_app.commands.trained import TrainedCommand
 from gym_bot_app.commands.all_training_trainees import AllTrainingTraineesCommand
 from gym_bot_app.commands.ranking import RankingCommand
 from gym_bot_app.commands.month_ranking import MonthRankingCommand
+from gym_bot_app.commands.year_ranking import YearRankingCommand
 from gym_bot_app.commands.motivation_quotes import MotivationQuotesCommand

@@ -325,6 +325,35 @@ class Trainee(Document):
 
         return trained_days_count, days_in_month, training_percentage
 
+    def calculate_statistics_training_days_for_this_year(self, selected_year):
+        """Calculate the statistics training days for the given year.
+
+        Args:
+            year(int): year which you want to calculate the statistics training.
+
+        Returns.
+            int. number of days trained days in this year.
+            int. number of days in this year.
+            float. training percentage for this year.
+        """
+        today = datetime.now()
+        start_of_year = datetime(year=selected_year, month=1, day=1)
+        
+        if today.year == selected_year:
+            # If current year, only count days from Jan 1 to today
+            days_in_year = (today - start_of_year).days + 1
+        else:
+            # For past years, calculate total days in the year using timedelta
+            days_in_year = (datetime(year=selected_year + 1, month=1, day=1) - start_of_year).days
+
+        trained_days_count = self.get_training_info(start_training_date=start_of_year, num_of_training_days=days_in_year).count()
+        if trained_days_count == 0:
+            training_percentage = 0
+        else:
+            training_percentage = round(trained_days_count / (days_in_year / 100), 1)
+
+        return trained_days_count, days_in_year, training_percentage
+
     @property
     def groups(self):
         return Group.objects.filter(is_deleted=False, trainees__contains=self)
