@@ -5,7 +5,7 @@ backports-abc==0.5
 backports.functools-lru-cache==1.6.1
 backports.shutil-get-terminal-size==1.0.0
 cachetools==4.2.2
-certifi==2018.1.18
+certifi==2022.12.7
 cffi==1.14.3
 colorama==0.3.9
 cryptography==3.3.2
