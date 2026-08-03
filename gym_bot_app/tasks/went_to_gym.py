@@ -1,4 +1,4 @@
-from datetime import time, timedelta, datetime
+from datetime import time, datetime
 from typing import List
 
 from telegram import Update, ParseMode
@@ -9,7 +9,7 @@ from gym_bot_app.tasks import Task
 from gym_bot_app.utils import trainee_already_marked_training_date, \
     get_trainees_that_selected_today_and_did_not_train_yet
 from gym_bot_app.keyboards import yes_or_no_inline_keyboard, YES_RESPONSE
-from gym_bot_app.decorators import repeats, run_for_all_groups, get_trainee_and_group
+from gym_bot_app.decorators import run_for_all_groups, get_trainee_and_group
 from gym_bot_app import THUMBS_UP_EMOJI, THUMBS_DOWN_EMOJI, FACEPALMING_EMOJI, TROPHY_EMOJI, WEIGHT_LIFTER_EMOJI
 
 
@@ -40,11 +40,6 @@ class WentToGymTask(Task):
                                  callback=self.went_to_gym_callback_query)
         )
 
-    def get_start_time(self):
-        """Start time of went to gym task based on the target time."""
-        return self._seconds_until_time(target_time=self.target_time)
-
-    @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
     def execute(self, group: Group):
         """Override method to execute went to gym task.

@@ -36,6 +36,11 @@ def run_simple_http_server_on_background(logger: logging.Logger, should_run_simp
     def close_http_server_callback():
         if should_run_simple_http_server:
             logger.info('Closing HTTP server')
+            # shutdown() must come first, and must be called from a different thread
+            # than the one running serve_forever(). Without it serve_forever() keeps
+            # looping, the join() below blocks forever, and the process can only be
+            # killed -- which made every container stop wait out its full grace period.
+            server.shutdown()
             server.server_close()
             http_server_thread.join()
             logger.info('Closed HTTP server')

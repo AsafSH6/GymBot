@@ -1,5 +1,6 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 
 from telegram.ext import Updater
 
@@ -25,7 +26,19 @@ from gym_bot_app.tasks import (GoToGymTask,
 
 MSG_TIMEOUT = 20
 
-logging.basicConfig(filename='logs/gymbot.log',
+LOG_DIR = 'logs'
+LOG_PATH = os.path.join(LOG_DIR, 'gymbot.log')
+LOG_MAX_BYTES = 10 * 1024 * 1024
+LOG_BACKUP_COUNT = 3
+
+# The log file is rotated rather than left to grow without bound -- it shares a disk
+# with everything else on the host. Note the StreamHandler added in __main__ is what
+# puts the logs on stdout (basicConfig with a handler only writes to that handler), so
+# it must stay: without it the container produces no visible output at all.
+os.makedirs(LOG_DIR, exist_ok=True)
+logging.basicConfig(handlers=[RotatingFileHandler(LOG_PATH,
+                                                  maxBytes=LOG_MAX_BYTES,
+                                                  backupCount=LOG_BACKUP_COUNT)],
                     format='%(asctime)s %(levelname)s - [%(module)s:%(funcName)s:%(lineno)d] %(message)s',
                     datefmt='%d-%m-%Y:%H:%M:%S',
                     level=logging.INFO)

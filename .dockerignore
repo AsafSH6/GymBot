@@ -1,6 +1,27 @@
-*.pyc
-*/venv*
-*/.git*
-*/.idea*
+# NOTE: patterns are matched against the path from the context root, so a leading
+# `*/` (as this file used to have) does NOT match a top-level `.git` or `venv`.
+
+.git
+.gitignore
+.github
+.idea
+.vscode
+
+venv
+.venv
 build
 build_instructions.txt
+
+**/__pycache__
+**/*.py[cod]
+
+logs
+backups
+
+tests
+Procfile
+runtime.txt
+README.md
+LICENSE
+Dockerfile
+.dockerignore

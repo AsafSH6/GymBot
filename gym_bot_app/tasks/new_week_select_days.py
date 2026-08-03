@@ -1,4 +1,4 @@
-from datetime import time, timedelta
+from datetime import time
 
 from telegram import error, Update
 from telegram.ext import CallbackQueryHandler, CallbackContext
@@ -7,7 +7,8 @@ from telegram.error import TimedOut
 from gym_bot_app.keyboards import all_group_participants_select_days_inline_keyboard
 from gym_bot_app.models import Trainee, Group
 from gym_bot_app.tasks import Task
-from gym_bot_app.decorators import get_trainee_and_group, repeats, run_for_all_groups
+from gym_bot_app.tasks.task import cron_day_of_week
+from gym_bot_app.decorators import get_trainee_and_group, run_for_all_groups
 
 
 class NewWeekSelectDaysTask(Task):
@@ -30,12 +31,11 @@ class NewWeekSelectDaysTask(Task):
                                  callback=self.new_week_selected_day_callback_query)
         )
 
-    def get_start_time(self):
-        """Start time of select ne week days task based on the target day and target time."""
-        return self._seconds_until_day_and_time(target_day_name=self.target_day,
-                                                target_time=self.target_time)
+    @property
+    def target_days(self):
+        """This task runs once a week, on its target day only."""
+        return (cron_day_of_week(self.target_day), )
 
-    @repeats(every_seconds=timedelta(weeks=1).total_seconds())
     @run_for_all_groups
     def execute(self, group: Group):
         """Override method to execute new week select days task.

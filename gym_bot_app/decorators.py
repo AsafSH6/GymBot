@@ -1,6 +1,5 @@
 import logging
 import functools
-import threading
 
 from telegram.error import TimedOut, Unauthorized
 
@@ -69,25 +68,6 @@ def get_trainee_and_group(func):
         return func(*args_with_trainee_and_group, **kwargs)
 
     return wrapper
-
-
-def repeats(every_seconds):
-    """Decorator to repeat function.
-
-    Args:
-        every_seconds( | float): number of seconds to wait between each repeat.
-
-    """
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            threading.Timer(every_seconds,
-                            wrapper,
-                            args=args,
-                            kwargs=kwargs).start()
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
 
 
 def run_for_all_groups(func):
