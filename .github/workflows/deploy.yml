@@ -1,0 +1,98 @@
+# Deploys the current commit to the bots host.
+#
+# Currently manual-only. The `push` trigger below is commented out until the AWS
+# account and BotsCoreStack exist (they create the OIDC role this assumes and the
+# SSM parameters it reads); uncomment it as the last step of the GymBot cutover.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to deploy. Defaults to this commit. Use a previous SHA to roll back.'
+        required: false
+  # push:
+  #   branches: [master]
+
+permissions:
+  id-token: write   # required to obtain the OIDC token; there are no stored AWS keys
+  contents: read
+
+concurrency:
+  group: deploy-gymbot
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Resolve deployment targets
+        id: cfg
+        run: |
+          set -euo pipefail
+          get() { aws ssm get-parameter --name "$1" --query Parameter.Value --output text; }
+          echo "repo=$(get /bots/config/ecr_gymbot)"    >> "$GITHUB_OUTPUT"
+          echo "instance=$(get /bots/config/instance_id)" >> "$GITHUB_OUTPUT"
+          echo "bucket=$(get /bots/config/backup_bucket)" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ inputs.tag || github.sha }}"      >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      # Skipped when rolling back to a tag that is already in the registry.
+      - name: Build and push
+        if: ${{ !inputs.tag }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.cfg.outputs.repo }}:${{ steps.cfg.outputs.tag }}
+            ${{ steps.cfg.outputs.repo }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Output goes to S3 because GetCommandInvocation truncates at 2500 characters,
+      # which is less than a failed deploy's logs.
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          command_id=$(aws ssm send-command \
+            --instance-ids "${{ steps.cfg.outputs.instance }}" \
+            --document-name AWS-RunShellScript \
+            --comment "deploy gymbot ${{ steps.cfg.outputs.tag }}" \
+            --output-s3-bucket-name "${{ steps.cfg.outputs.bucket }}" \
+            --output-s3-key-prefix ssm-output/ \
+            --parameters commands='["/opt/bots/deploy.sh gymbot ${{ steps.cfg.outputs.tag }}"]' \
+            --query Command.CommandId --output text)
+          echo "SSM command: $command_id"
+
+          for _ in $(seq 1 60); do
+            status=$(aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "${{ steps.cfg.outputs.instance }}" \
+              --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in
+              Success) break ;;
+              Failed|Cancelled|TimedOut) break ;;
+            esac
+            sleep 10
+          done
+
+          aws ssm get-command-invocation \
+            --command-id "$command_id" \
+            --instance-id "${{ steps.cfg.outputs.instance }}" \
+            --query 'StandardOutputContent' --output text || true
+          aws ssm get-command-invocation \
+            --command-id "$command_id" \
+            --instance-id "${{ steps.cfg.outputs.instance }}" \
+            --query 'StandardErrorContent' --output text >&2 || true
+
+          echo "final status: $status"
+          [ "$status" = Success ]

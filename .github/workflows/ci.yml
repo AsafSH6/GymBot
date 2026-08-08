@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'feature/**']
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t gymbot:ci .
+
+      # The Dockerfile already asserts tzdata resolves to IST/IDT at build time; this
+      # checks the application itself imports cleanly against the pinned dependencies.
+      - name: Import smoke test
+        run: docker run --rm gymbot:ci python3 -c "import gym_bot_app.gym_bot; print('import ok')"
+
+      # tests/ is excluded from the image by .dockerignore, so it is mounted in. This
+      # runs the tests against the exact artifact that gets deployed, not against a
+      # separately-resolved set of dependencies on the runner.
+      - name: Schedule tests
+        run: |
+          docker run --rm -v "$PWD/tests:/app/tests:ro" gymbot:ci \
+            python3 -m unittest discover -s tests -t /app -v
+
+      - name: Report the schedule
+        run: |
+          docker run --rm gymbot:ci python3 -c "
+          import logging, sys
+          logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s')
+          from telegram.ext import Updater
+          from gym_bot_app.tasks import (DidNotTrainUpdaterTask, GoToGymTask,
+                                         NewWeekSelectDaysTask, WentToGymTask)
+          updater = Updater(token='123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+          for task in (GoToGymTask, WentToGymTask, NewWeekSelectDaysTask, DidNotTrainUpdaterTask):
+              task(updater=updater, logger=logging.getLogger()).start()
+          " | grep 'Scheduled task'

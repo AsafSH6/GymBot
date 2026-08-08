@@ -6,7 +6,7 @@ from telegram import ParseMode
 from gym_bot_app.models import Trainee, Group
 from gym_bot_app.tasks import Task
 from gym_bot_app.utils import get_trainees_that_selected_today_and_did_not_train_yet
-from gym_bot_app.decorators import repeats, run_for_all_groups
+from gym_bot_app.decorators import run_for_all_groups
 
 
 class DidNotTrainUpdaterTask(Task):
@@ -23,11 +23,6 @@ class DidNotTrainUpdaterTask(Task):
         super(DidNotTrainUpdaterTask, self).__init__(*args, **kwargs)
         self.target_time = target_time or self.DEFAULT_TARGET_TIME
 
-    def get_start_time(self):
-        """Start time of did not train updater based on the target time."""
-        return self._seconds_until_time(target_time=self.target_time)
-
-    @repeats(every_seconds=timedelta(days=1).total_seconds())
     @run_for_all_groups
     def execute(self, group: Group):
         """Override method to execute did not train updater.

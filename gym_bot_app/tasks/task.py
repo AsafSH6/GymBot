@@ -1,11 +1,64 @@
-import threading
-from datetime import datetime, timedelta
+import os
+from datetime import datetime, time
 
-from gym_bot_app.utils import number_of_days_until_next_day
+import pytz
+
+# APScheduler 3.6.3 (the version python-telegram-bot 13.7 depends on) accepts ONLY
+# pytz timezones. Passing a zoneinfo.ZoneInfo raises
+#     TypeError: Only timezones from the pytz library are supported
+# so this must stay pytz. pytz is already a pinned dependency.
+#
+# The timezone comes from the TZ environment variable so the container's TZ setting is
+# the single source of truth, defaulting to the bot's home timezone.
+SCHEDULE_TIMEZONE = pytz.timezone(os.getenv('TZ', 'Asia/Jerusalem'))
+
+# APScheduler's cron `day_of_week` is Monday=0 .. Sunday=6.
+#
+# WARNING: this is NOT the same ordering as gym_bot_app.DAYS_NAME, which starts on
+# Sunday. DAYS_NAME.index('Saturday') is 6, which as a cron value means SUNDAY -- the
+# weekly task would fire a day late. Keep this table separate and explicit.
+#
+# A literal table is used rather than time.strptime(name, '%A') because strptime's
+# weekday names are locale-dependent.
+CRON_DAY_OF_WEEK = {
+    'monday': 0,
+    'tuesday': 1,
+    'wednesday': 2,
+    'thursday': 3,
+    'friday': 4,
+    'saturday': 5,
+    'sunday': 6,
+}
+
+EVERY_DAY = tuple(range(7))
+
+
+def cron_day_of_week(day_name):
+    """Translate an English weekday name into APScheduler's cron numbering.
+
+    Args:
+        day_name(str): English weekday name, e.g. 'Saturday'.
+
+    Returns:
+        int. the day in APScheduler cron numbering (Monday=0 .. Sunday=6).
+
+    Raises:
+        ValueError. the given name is not a weekday.
+
+    """
+    try:
+        return CRON_DAY_OF_WEEK[day_name.strip().lower()]
+    except (AttributeError, KeyError):
+        raise ValueError('Unknown weekday name: {!r}'.format(day_name))
 
 
 class Task(object):
     """Telegram gym bot abstract task class.
+
+    A task is a recurring job that runs at a fixed local wall-clock time. Tasks are
+    registered on the bot's job queue (APScheduler, shipped with python-telegram-bot)
+    so the schedule is anchored to a real timezone and therefore survives daylight
+    saving transitions -- 09:00 stays 09:00 local across the October change.
 
     updater(telegram.ext.Updater): bots' Updater instance.
     logger(logging.logger): logger to write to.
@@ -14,101 +67,92 @@ class Task(object):
     def __init__(self, updater, logger):
         self.updater = updater
         self.logger = logger
+        self.job = None
 
-    def get_start_time(self):
-        """Get the start time of the task.
+    @property
+    def target_days(self):
+        """Days of the week the task runs on, in APScheduler cron numbering.
 
         Returns:
-            int. number of seconds untill the start time.
+            tuple. of int, Monday=0 .. Sunday=6. Defaults to every day.
 
         """
-        raise NotImplementedError('Not implemented start time method.')
+        return EVERY_DAY
 
     def execute(self, *args, **kwargs):
         """Task execution implementation.
 
-        Will be used once it reached the start time.
+        Will be used once it reached the target time.
 
         """
         raise NotImplementedError('Not implemented execute method.')
 
+    def _job_callback(self, context):
+        """Job queue entry point.
+
+        The job queue calls back with a CallbackContext, while execute() is wrapped by
+        run_for_all_groups and receives the group as its argument, so the context is
+        deliberately dropped here.
+
+        """
+        self.execute()
+
     def start(self, *args, **kwargs):
-        """Start the task.
+        """Register the task on the bot's job queue.
 
-        Calculate the start time and waits until reached in order to run the _execute method.
-
-        Raises:
-            RuntimeError. start time already passed.
+        Returns:
+            Task. self, so callers can collect the started tasks.
 
         """
         self.logger.info('Task %s', self.__class__.__name__)
-        start_time = self.get_start_time()
-        if start_time < 0:
-            self.logger.error('Start time already passed')
-            raise RuntimeError('%s start time already passed' % self.__class__.__name__)
 
-        threading.Timer(start_time,
-                        self.execute,
-                        args=args,
-                        kwargs=kwargs).start()
-        self.logger.info('Targeted task %s to run in %s seconds', self.__class__.__name__, start_time)
+        # Only tzinfo is read off this object by run_daily (it becomes the cron
+        # trigger's timezone), so self.target_time itself stays naive -- the /trained
+        # command compares it against a naive datetime.now().time().
+        target_time = time(hour=self.target_time.hour,
+                           minute=self.target_time.minute,
+                           second=self.target_time.second,
+                           tzinfo=SCHEDULE_TIMEZONE)
+
+        self.job = self.updater.job_queue.run_daily(callback=self._job_callback,
+                                                    time=target_time,
+                                                    days=self.target_days,
+                                                    name=self.__class__.__name__)
+
+        self.logger.info('Scheduled task %s at %s %s on days %s, next run %s',
+                         self.__class__.__name__,
+                         self.target_time,
+                         SCHEDULE_TIMEZONE,
+                         self.target_days,
+                         self.next_run_time)
 
         return self
 
-    def _seconds_until_day_and_time(self, target_day_name, target_time):
-        """Calculate the number of seconds until the next occur of the target day and time.
-
-        Args:
-            target_day_name(str): name of the target day.
-            target_time(time.time): target time of the day.
-
-        Returns.
-            int. number of seconds until the given day and time.
-
-        """
-        self.logger.info('Requested target day is %s and time is %s', target_day_name, target_time)
-        now = datetime.today()
-        days_until_next_target_day = number_of_days_until_next_day(target_day_name)
-
-        target_datetime = now.replace(hour=target_time.hour,
-                                      minute=target_time.minute,
-                                      second=target_time.second,
-                                      microsecond=target_time.microsecond)
-
-        # if today is the requested day and the target time already passed.
-        if days_until_next_target_day == 0 and now.time() > target_time:
-            self.logger.debug('Today is the requested day but the time already passed, targeting time for next week')
-            target_datetime += timedelta(weeks=1)
-        else:
-            self.logger.debug('Number of days left until the target day is %s', days_until_next_target_day)
-            target_datetime += timedelta(days=days_until_next_target_day)
-
-        self.logger.debug('Requested target datetime is %s', target_datetime)
-        return (target_datetime - now).total_seconds()
-
-    def _seconds_until_time(self, target_time):
-        """Calculate the number of seconds until the next occur of the given time.
-
-        If the time already passed (in the current day), targeting time of the next day.
-
-        Args:
-            target_time(time.time): target time for calculation.
+    @property
+    def next_run_time(self):
+        """Next time the task is scheduled to run, in the schedule timezone.
 
         Returns:
-            int. number of seconds until the given time.
+            datetime | None. None if the task was never started.
 
         """
-        self.logger.info('Requested target time is %s', target_time)
-        now = datetime.today()
-        target_datetime = now.replace(hour=target_time.hour,
-                                      minute=target_time.minute,
-                                      second=target_time.second,
-                                      microsecond=target_time.microsecond)
-        if now > target_datetime:  # time already passed- move to the next day.
-            self.logger.debug('Time already passed, targeting time for tomorrow')
-            target_datetime += timedelta(days=1)
-        else:
-            self.logger.debug('Time did not pass, targeting time for today')
+        if self.job is None:
+            return None
 
-        self.logger.debug('Requested target datetime is %s', target_datetime)
-        return (target_datetime - now).total_seconds()
+        scheduler_job = self.job.job
+        next_run_time = getattr(scheduler_job, 'next_run_time', None)
+
+        if next_run_time is None:
+            # Tasks are registered before start_polling() starts the job queue, so at
+            # startup the job is still pending and the scheduler has not assigned it a
+            # run time yet. Ask the trigger directly, otherwise the schedule logged at
+            # boot -- the thing that proves the schedule is right -- would be empty.
+            trigger = getattr(scheduler_job, 'trigger', None)
+            if trigger is None:
+                return None
+            next_run_time = trigger.get_next_fire_time(None, datetime.now(SCHEDULE_TIMEZONE))
+
+        if next_run_time is None:
+            return None
+
+        return next_run_time.astimezone(SCHEDULE_TIMEZONE)

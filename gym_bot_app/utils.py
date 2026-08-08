@@ -19,20 +19,6 @@ def day_name_to_day_idx(day_name):
     return DAYS_NAME.index(day_name.capitalize())
 
 
-def number_of_days_until_next_day(target_day_name):
-    """Calculate the number of days until the next occurrence of target day.
-
-    Args:
-        target_day_name(str): name of the target day.
-
-    Returns:
-        int. number of days until the target day.
-
-    """
-    today = datetime.today().strftime('%A')
-    return (DAYS_NAME.index(target_day_name.capitalize()) - DAYS_NAME.index(today)) % len(DAYS_NAME)
-
-
 def trainee_already_marked_training_date(trainee, training_date):
     """Check whether trainee already marked the given training date.
 
