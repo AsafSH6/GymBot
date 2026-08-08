@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import datetime as dt
 
 from mongoengine import connect
@@ -20,12 +19,14 @@ MODELS_TO_BACKUP = (
 def backup(con_url):
     connect(host=con_url)
 
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+
     for ModelToBackUp in MODELS_TO_BACKUP:
         data = ModelToBackUp.objects.to_json()
         filename = '{model_name}.{date}.json'.format(model_name=ModelToBackUp.__name__,
                                                      date=dt.date.today().strftime('%d.%m.%Y'))
-        with open(os.path.join(BACKUP_DIR, filename), 'wb') as f:
-            json.dump(data, f, indent=2)
+        with open(os.path.join(BACKUP_DIR, filename), 'w') as f:
+            f.write(data)
 
 
 if __name__ == '__main__':

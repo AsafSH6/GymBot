@@ -62,6 +62,10 @@ jobs:
             ${{ steps.cfg.outputs.repo }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Attestations are pushed as extra UNTAGGED manifests, which crowd out real
+          # images in ECR's retention window. Nothing here consumes them.
+          provenance: false
+          sbom: false
 
       # Output goes to S3 because GetCommandInvocation truncates at 2500 characters,
       # which is less than a failed deploy's logs.
