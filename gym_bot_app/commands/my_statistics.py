@@ -22,6 +22,10 @@ class MyStatisticsCommand(Command):
         מספר ממוצע של ימי אימון בשבוע: {num_of_training_days_per_week}
         {level}
         ''')
+    SEASON_MSG = 'עונה {number} (מאז {started_at})'
+    PAST_SEASONS_MSG = 'עונות קודמות:'
+    PAST_SEASON_MSG = 'עונה {number}: {level}, {trained_days} ימי אימון'
+    SEASON_DATE_FORMAT = '%d/%m/%Y'
 
     def __init__(self, *args, **kwargs):
         super(MyStatisticsCommand, self).__init__(*args, **kwargs)
@@ -38,12 +42,29 @@ class MyStatisticsCommand(Command):
         (trained_days, missed_training_days,
          training_percentage, num_of_training_days_per_week) = trainee.get_training_statistics()
 
-        update.message.reply_text(quote=True,
-                                  text=self.TRAINEE_STATISTICS_MSG.format(
-                                      trained_days=trained_days,
-                                      missed_training_days=missed_training_days,
-                                      percentage=training_percentage,
-                                      num_of_training_days_per_week='{:.2f}'.format(num_of_training_days_per_week),
-                                      level=trainee.level
-                                  ))
+        msg = self.TRAINEE_STATISTICS_MSG.format(
+            trained_days=trained_days,
+            missed_training_days=missed_training_days,
+            percentage=training_percentage,
+            num_of_training_days_per_week='{:.2f}'.format(num_of_training_days_per_week),
+            level=trainee.level
+        )
+
+        if trainee.past_seasons:
+            season_msg = self.SEASON_MSG.format(number=trainee.season_number,
+                                                started_at=trainee.season_started_at.strftime(self.SEASON_DATE_FORMAT))
+            past_seasons_msg = '\n'.join(
+                self.PAST_SEASON_MSG.format(number=season.number,
+                                            level=season.level,
+                                            trained_days=trainee.count_trained_days_in_past_season(season))
+                for season in trainee.past_seasons
+            )
+            msg = '{season}{statistics}\n{past_seasons_title}\n{past_seasons}'.format(
+                season=season_msg,
+                statistics=msg,
+                past_seasons_title=self.PAST_SEASONS_MSG,
+                past_seasons=past_seasons_msg
+            )
+
+        update.message.reply_text(quote=True, text=msg)
 

@@ -10,6 +10,7 @@ FACEPALMING_EMOJI = emoji.emojize(':person_facepalming:')
 KISSING_HEART_EMOJI = emoji.emojize(':face_blowing_a_kiss:')
 LYING_FACE_EMOJI = emoji.emojize(':lying_face:')
 TROPHY_EMOJI = emoji.emojize(':trophy:')
+ALARM_CLOCK_EMOJI = emoji.emojize(':alarm_clock:')
 
 DAYS_NAME = 'Sunday Monday Tuesday Wednesday Thursday Friday Saturday'.split()
 HEBREW_DAYS_NAME = 'ראשון שני שלישי רביעי חמישי שישי שבת'.split()

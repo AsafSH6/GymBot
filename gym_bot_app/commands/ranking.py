@@ -28,12 +28,28 @@ class RankingCommand(Command):
         """
         self.logger.info('Ranking statistics command in %s', group)
 
+        msg = self.get_ranking_msg(group)
+        self.logger.debug('Group ranking is %s', msg)
+
+        update.message.reply_text(quote=True,
+                                  text=msg)
+
+    @classmethod
+    def get_ranking_msg(cls, group: Group):
+        """Generate the ranking message of the top trainees in the given group.
+
+        Args:
+            group(models.Group): group to rank its trainees.
+
+        Returns:
+            str. ranking message.
+
+        """
         ranking = sorted(group.trainees,
                          key=lambda trainee: (trainee.level.number, trainee.level.exp),
-                         reverse=True)[:self.TRAINEES_LIMIT]
-        self.logger.debug('Group ranking is %s', ranking)
+                         reverse=True)[:cls.TRAINEES_LIMIT]
 
-        msg = '\n'.join(
+        return '\n'.join(
             '{idx}. {name} {level}'.format(
                 idx=(idx + 1),
                 name=trainee.first_name,
@@ -41,5 +57,3 @@ class RankingCommand(Command):
             )
             for idx, trainee in enumerate(ranking)
         )
-        update.message.reply_text(quote=True,
-                                  text=msg)
