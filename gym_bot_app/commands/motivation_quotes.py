@@ -43,4 +43,5 @@ class MotivationQuotesCommand(Command):
             quote = {'text': quote.text, 'author': quote.trainee.fetch().first_name}
 
         update.message.reply_text(quote=True,
-                                  text=format_quote(quote))
+                                  text=format_quote(quote),
+                                  disable_web_page_preview=True)

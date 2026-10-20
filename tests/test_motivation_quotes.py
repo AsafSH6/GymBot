@@ -15,8 +15,9 @@ from unittest import mock
 import mongomock
 from mongoengine import NotUniqueError, connect, disconnect
 from mongoengine.connection import get_db
-from telegram import Bot, Update
+from telegram import Bot, MessageEntity, Update
 from telegram.ext import Updater
+from telegram.utils.helpers import DEFAULT_NONE
 
 from gym_bot_app.commands import MotivationQuotesCommand, SetMotivationCommand
 from gym_bot_app.models import Group, PersonalMotivationQuote, Trainee
@@ -72,22 +73,35 @@ class MotivationTestCase(unittest.TestCase):
         self.set_motivation_command = SetMotivationCommand(tasks={}, updater=self.updater, logger=logger)
         self.motivate_me_command = MotivationQuotesCommand(tasks={}, updater=self.updater, logger=logger)
 
-    def make_update(self, text, user_id='1', first_name='Arnold', group_id=GROUP_ID, edited=False):
-        """A real telegram Update with a command message from the group, as sent by the given user."""
+    def make_update(self, text, user_id='1', first_name='Arnold', group_id=GROUP_ID, edited=False, entities=()):
+        """A real telegram Update with a command message from the group, as sent by the given user.
+
+        Args:
+            entities(iterable): entities Telegram found in the text after the command, as dicts.
+
+        """
         command = text.split(maxsplit=1)[0]
         message = {'message_id': 7, 'date': 0, 'chat': {'id': int(group_id), 'type': 'group'},
                    'from': {'id': int(user_id), 'first_name': first_name, 'is_bot': False},
-                   'text': text, 'entities': [{'type': 'bot_command', 'offset': 0, 'length': len(command)}]}
+                   'text': text,
+                   'entities': [{'type': 'bot_command', 'offset': 0, 'length': len(command)}, *entities]}
         return Update.de_json({'update_id': 1, 'edited_message' if edited else 'message': message}, self.bot)
 
     def reply_to(self, handler, text, **kwargs):
-        """Send the command message to the handler, returns the text the bot replied with."""
+        """Send the command message to the handler, returns the text the bot replied with.
+
+        The whole call is kept in self.reply_call.
+
+        """
         self.bot.send_message.reset_mock()
         handler(self.make_update(text, **kwargs), mock.Mock())
-        call = self.bot.send_message.call_args
-        self.assertEqual(str(call.kwargs['chat_id']), kwargs.get('group_id', GROUP_ID))
-        self.assertEqual(call.kwargs['reply_to_message_id'], 7)
-        return call.kwargs['text']
+        self.reply_call = self.bot.send_message.call_args
+        self.assertEqual(str(self.reply_call.kwargs['chat_id']), kwargs.get('group_id', GROUP_ID))
+        self.assertEqual(self.reply_call.kwargs['reply_to_message_id'], 7)
+        # Sentences are free text from trainees, so they are only ever sent as plain text.
+        self.assertIn(self.reply_call.kwargs.get('parse_mode'), (None, DEFAULT_NONE))
+        self.assertIsNone(self.reply_call.kwargs.get('entities'))
+        return self.reply_call.kwargs['text']
 
     def set_motivation(self, text, **kwargs):
         return self.reply_to(self.set_motivation_command._handler, text, **kwargs)
@@ -258,6 +272,139 @@ class TestMotivateMe(MotivationTestCase):
 
         for _ in range(20):
             self.assertIn(self.reply_to(self.motivate_me_command._handler, '/motivate_me'), possible_replies)
+
+
+def entity_of(text, part, entity_type, **extra):
+    """Entity of the given type over the part of the text, as Telegram would send it."""
+    return {'type': entity_type, 'offset': text.index(part), 'length': len(part), **extra}
+
+
+class TestAbuse(MotivationTestCase):
+    """Sentences are free text from anyone in the group, and are shown again to the whole group."""
+
+    def assert_rejected(self, text, expected_msg, **kwargs):
+        with mock.patch.object(SetMotivationCommand, '_set_quote') as set_quote:
+            self.assertEqual(self.set_motivation(text, **kwargs), expected_msg)
+
+        set_quote.assert_not_called()
+
+    def test_database_operators_are_stored_as_plain_text(self):
+        self.set_motivation('/set_motivation Yeah buddy', user_id='2', first_name='Ronnie')
+        payloads = ('{"$gt": ""}',
+                    '{"$set": {"text": "hacked"}}',
+                    '$where: function() { sleep(5000) }',
+                    "'; db.dropDatabase(); //",
+                    'text.$.trainee')
+
+        for payload in payloads:
+            with self.subTest(payload=payload):
+                self.set_motivation('/set_motivation ' + payload)
+
+                self.assertEqual(stored_quotes(), [(GROUP_ID, '1', payload), (GROUP_ID, '2', 'Yeah buddy')])
+                pool, _ = self.motivate_me()
+                self.assertCountEqual([quote.text for quote in pool[len(QUOTE_LIST):]], [payload, 'Yeah buddy'])
+
+    def test_markup_is_sent_as_plain_text(self):
+        text = '*bold* _italic_ `code` <b>html</b> [click](tg://user?id=2) &amp;'
+
+        self.set_motivation('/set_motivation ' + text)
+
+        self.assertEqual(self.set_motivation('/set_motivation'), SetMotivationCommand.CURRENT_MOTIVATION_MSG.format(text=text))
+        self.assertEqual(self.motivate_me()[1], QUOTE_MSG.format(text=text, author='Arnold'))
+
+    def test_links_tags_and_commands_are_rejected(self):
+        cases = (('https://evil.example/login', MessageEntity.URL, {}),
+                 ('evil.example', MessageEntity.URL, {}),
+                 ('click here', MessageEntity.TEXT_LINK, {'url': 'https://evil.example'}),
+                 ('me@evil.example', MessageEntity.EMAIL, {}),
+                 ('@ronnie_lifts', MessageEntity.MENTION, {}),
+                 ('Ronnie', MessageEntity.TEXT_MENTION, {'user': {'id': 2, 'first_name': 'Ronnie', 'is_bot': False}}),
+                 ('/fresh_start', MessageEntity.BOT_COMMAND, {}))
+
+        for part, entity_type, extra in cases:
+            with self.subTest(entity_type=entity_type, part=part):
+                text = '/set_motivation Go train {} now'.format(part)
+                self.assert_rejected(text, SetMotivationCommand.LINKS_AND_TAGS_MSG,
+                                     entities=[entity_of(text, part, entity_type, **extra)])
+
+        self.assertEqual(stored_quotes(), [])
+
+    def test_hashtags_are_allowed(self):
+        text = '/set_motivation Never skip #legday'
+
+        self.set_motivation(text, entities=[entity_of(text, '#legday', MessageEntity.HASHTAG)])
+
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip #legday')])
+
+    def test_rejected_sentence_keeps_the_current_one(self):
+        self.set_motivation('/set_motivation Never skip leg day')
+        text = '/set_motivation Free protein at https://evil.example'
+
+        self.assert_rejected(text, SetMotivationCommand.LINKS_AND_TAGS_MSG,
+                             entities=[entity_of(text, 'https://evil.example', MessageEntity.URL)])
+
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day')])
+
+    def test_replies_with_a_sentence_never_show_link_previews(self):
+        self.set_motivation('/set_motivation Never skip leg day')
+        self.assertIs(self.reply_call.kwargs['disable_web_page_preview'], True)
+
+        for text in ('/set_motivation Light weight baby', '/set_motivation'):
+            with self.subTest(text=text):
+                self.set_motivation(text)
+                self.assertIs(self.reply_call.kwargs['disable_web_page_preview'], True)
+
+        self.motivate_me()
+        self.assertIs(self.reply_call.kwargs['disable_web_page_preview'], True)
+
+    def test_too_many_lines_are_rejected(self):
+        for text in ('a\nb\nc\nd', 'a\n\n\nb', 'a' + '\n' * 150 + 'b'):
+            with self.subTest(text=text):
+                self.assert_rejected('/set_motivation ' + text, SetMotivationCommand.TOO_MANY_LINES_MSG)
+
+        self.set_motivation('/set_motivation Never\nskip\nleg day')
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never\nskip\nleg day')])
+
+    def test_direction_overrides_are_rejected(self):
+        """An override keeps going past the sentence and would flip the author name."""
+        for char in '‪‫‬‭‮⁦⁧⁨⁩':
+            with self.subTest(char=hex(ord(char))):
+                self.assert_rejected('/set_motivation evil{}text'.format(char),
+                                     SetMotivationCommand.FORBIDDEN_CHARACTERS_MSG)
+
+    def test_control_and_invalid_characters_are_rejected(self):
+        for text in ('null\x00byte', 'bell\x07', '\x1b[31mred', 'tab\there', 'carriage\rreturn', 'lone\ud800surrogate'):
+            with self.subTest(text=text):
+                self.assert_rejected('/set_motivation ' + text, SetMotivationCommand.FORBIDDEN_CHARACTERS_MSG)
+
+    def test_combining_mark_floods_are_rejected(self):
+        self.assert_rejected('/set_motivation Z' + '̶́҉' * 10, SetMotivationCommand.FORBIDDEN_CHARACTERS_MSG)
+
+    def test_normal_hebrew_and_emoji_are_accepted(self):
+        """Vowel points and shin dots, direction marks around English, and emoji joined by zero width joiners."""
+        texts = ('שָׁלוֹם עֲלֵיכֶם',
+                 'היום ‎Leg day‎ וזהו',
+                 'בוא נזיז ברזלים 🏋️‍♂️💪🏽 1️⃣ 🇮🇱 👨‍👩‍👧',
+                 'á' + '́' * 3)
+
+        for text in texts:
+            with self.subTest(text=text):
+                self.set_motivation('/set_motivation ' + text)
+                self.assertEqual(stored_quotes(), [(GROUP_ID, '1', text)])
+
+    def test_invisible_sentence_counts_as_no_sentence(self):
+        for text in ('​​​', '‏', '‮', '́', '　  '):
+            with self.subTest(text=repr(text)):
+                self.assert_rejected('/set_motivation ' + text, SetMotivationCommand.DID_NOT_PROVIDE_MOTIVATION_MSG)
+
+    def test_huge_message_is_rejected_before_the_database(self):
+        self.assert_rejected('/set_motivation ' + 'א' * 4000, SetMotivationCommand.MOTIVATION_TOO_LONG_MSG)
+
+    def test_flooding_keeps_one_sentence_per_trainee(self):
+        for attempt in range(50):
+            self.set_motivation('/set_motivation Attempt {}'.format(attempt))
+
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Attempt 49')])
 
 
 if __name__ == '__main__':
