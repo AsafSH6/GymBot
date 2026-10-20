@@ -1,4 +1,4 @@
-"""Schedule tests for the four recurring tasks.
+"""Schedule tests for the recurring tasks.
 
 These exist because the tasks used to re-arm themselves by adding a fixed 24 hours to
 the previous run, which silently shifted every message by an hour at the October
@@ -19,6 +19,7 @@ from telegram.ext import Updater
 from gym_bot_app import DAYS_NAME
 from gym_bot_app.tasks import (DidNotTrainUpdaterTask,
                                GoToGymTask,
+                               MotivationReminderTask,
                                NewWeekSelectDaysTask,
                                WentToGymTask)
 from gym_bot_app.tasks.task import EVERY_DAY, SCHEDULE_TIMEZONE, cron_day_of_week
@@ -38,11 +39,12 @@ EXPECTED_SCHEDULE = {
     WentToGymTask: (time(hour=21, minute=0), EVERY_DAY),
     NewWeekSelectDaysTask: (time(hour=21, minute=30), (SATURDAY, )),
     DidNotTrainUpdaterTask: (time(hour=23, minute=55), EVERY_DAY),
+    MotivationReminderTask: (time(hour=0, minute=5), EVERY_DAY),
 }
 
 
 class ScheduleTestCase(unittest.TestCase):
-    """Base fixture: a real Updater with a fake token, and all four tasks started."""
+    """Base fixture: a real Updater with a fake token, and all the tasks started."""
 
     @classmethod
     def setUpClass(cls):

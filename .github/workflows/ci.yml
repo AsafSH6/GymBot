@@ -36,9 +36,10 @@ jobs:
           import logging, sys
           logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='%(message)s')
           from telegram.ext import Updater
-          from gym_bot_app.tasks import (DidNotTrainUpdaterTask, GoToGymTask,
+          from gym_bot_app.tasks import (DidNotTrainUpdaterTask, GoToGymTask, MotivationReminderTask,
                                          NewWeekSelectDaysTask, WentToGymTask)
           updater = Updater(token='123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
-          for task in (GoToGymTask, WentToGymTask, NewWeekSelectDaysTask, DidNotTrainUpdaterTask):
+          for task in (GoToGymTask, WentToGymTask, NewWeekSelectDaysTask, DidNotTrainUpdaterTask,
+                       MotivationReminderTask):
               task(updater=updater, logger=logging.getLogger()).start()
-          " | grep 'Scheduled task'
+          " | grep -iE 'scheduled task|motivation reminder'

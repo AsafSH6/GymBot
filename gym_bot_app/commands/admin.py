@@ -10,7 +10,8 @@ from gym_bot_app.models import Admin, EXPEvent, FreshStartVote, Group, Trainee
 from gym_bot_app.commands import Command
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
-                               NewWeekSelectDaysTask)
+                               NewWeekSelectDaysTask,
+                               MotivationReminderTask)
 
 
 class AdminCommand(Command):
@@ -41,7 +42,8 @@ class AdminCommand(Command):
     TASKS = {
         'go_to_gym': GoToGymTask,
         'went_to_gym': WentToGymTask,
-        'new_week_select_days': NewWeekSelectDaysTask
+        'new_week_select_days': NewWeekSelectDaysTask,
+        'motivation_reminder': MotivationReminderTask,
     }
 
     def __init__(self, *args, **kwargs):

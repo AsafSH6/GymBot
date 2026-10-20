@@ -23,7 +23,8 @@ from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
                                TaskTypeToInstance,
                                NewWeekSelectDaysTask,
-                               DidNotTrainUpdaterTask)
+                               DidNotTrainUpdaterTask,
+                               MotivationReminderTask)
 
 MSG_TIMEOUT = 20
 
@@ -54,6 +55,7 @@ def run_gym_bot(token, logger):
         WentToGymTask(updater=updater, logger=logger).start(),
         NewWeekSelectDaysTask(updater=updater, logger=logger).start(),
         DidNotTrainUpdaterTask(updater=updater, logger=logger).start(),
+        MotivationReminderTask(updater=updater, logger=logger).start(),
     ]
 
     task_type_to_instance: TaskTypeToInstance = {

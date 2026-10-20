@@ -5,6 +5,7 @@ from gym_bot_app.tasks.go_to_gym import GoToGymTask
 from gym_bot_app.tasks.went_to_gym import WentToGymTask
 from gym_bot_app.tasks.new_week_select_days import NewWeekSelectDaysTask
 from gym_bot_app.tasks.did_not_train_updater import DidNotTrainUpdaterTask
+from gym_bot_app.tasks.motivation_reminder import MotivationReminderTask
 
 
 class TaskTypeToInstance(TypedDict):
@@ -12,3 +13,4 @@ class TaskTypeToInstance(TypedDict):
     WentToGymTask: WentToGymTask
     NewWeekSelectDaysTask: NewWeekSelectDaysTask
     DidNotTrainUpdaterTask: DidNotTrainUpdaterTask
+    MotivationReminderTask: MotivationReminderTask
