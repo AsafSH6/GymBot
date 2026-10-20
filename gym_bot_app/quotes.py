@@ -33,16 +33,6 @@ def format_quote(quote):
     return QUOTE_MSG.format(text=quote['text'], author=quote['author'])
 
 
-def random_quote():
-    """Pick a random quote.
-
-    Returns:
-        dict. quote from QUOTE_LIST.
-
-    """
-    return random.choice(QUOTE_LIST)
-
-
 def _cycle_order(cycle):
     """Order in which the quotes are used during the given cycle.
 

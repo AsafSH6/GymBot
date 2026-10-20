@@ -12,3 +12,4 @@ from gym_bot_app.commands.month_ranking import MonthRankingCommand
 from gym_bot_app.commands.year_ranking import YearRankingCommand
 from gym_bot_app.commands.motivation_quotes import MotivationQuotesCommand
 from gym_bot_app.commands.fresh_start import FreshStartCommand
+from gym_bot_app.commands.set_motivation import SetMotivationCommand

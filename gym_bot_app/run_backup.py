@@ -13,7 +13,8 @@ MODELS_TO_BACKUP = (
     Group,
     Admin,
     TrainingDayInfo,
-    FreshStartVote
+    FreshStartVote,
+    PersonalMotivationQuote
 )
 
 

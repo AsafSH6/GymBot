@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 DEFAULT_TRAINEE_CREATURE = 'שור עולם'
 
 
+MAX_PERSONAL_MOTIVATION_LENGTH = 200
+
+
 MAX_EXP = 2147483648
 LEVELS = {level_number: math.ceil((level_number - 1) * 3.5)
           for level_number in range(1, 200)}
@@ -797,6 +800,32 @@ class FreshStartVote(Document):
         return '<FreshStartVote {group_id} {status} at {executes_at}>'.format(group_id=self.group.pk,
                                                                               status=self.status,
                                                                               executes_at=self.executes_at)
+
+    def __str__(self):
+        return repr(self)
+
+
+class PersonalMotivationQuote(Document):
+    """Motivation sentence of a trainee, added to the motivation quotes of one group.
+
+    A trainee has at most one sentence in each group, setting another one replaces it.
+
+    """
+    group = LazyReferenceField(document_type=Group, required=True)
+    trainee = LazyReferenceField(document_type=Trainee, required=True)
+    text = StringField(required=True, max_length=MAX_PERSONAL_MOTIVATION_LENGTH)
+    updated_at = DateTimeField(default=datetime.now)
+
+    meta = {
+        'indexes': [{'fields': ('group', 'trainee'), 'unique': True}],
+        'index_background': True,
+    }
+
+    def __repr__(self):
+        return '<PersonalMotivationQuote of trainee {trainee_pk} in group {group_pk}>'.format(
+            trainee_pk=self.trainee.pk,
+            group_pk=self.group.pk
+        )
 
     def __str__(self):
         return repr(self)
