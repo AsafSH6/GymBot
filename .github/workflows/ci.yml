@@ -22,11 +22,13 @@ jobs:
 
       # tests/ is excluded from the image by .dockerignore, so it is mounted in. This
       # runs the tests against the exact artifact that gets deployed, not against a
-      # separately-resolved set of dependencies on the runner.
-      - name: Schedule tests
+      # separately-resolved set of dependencies on the runner. The test-only
+      # requirements are installed into this throwaway container, never into the image.
+      - name: Tests
         run: |
-          docker run --rm -v "$PWD/tests:/app/tests:ro" gymbot:ci \
-            python3 -m unittest discover -s tests -t /app -v
+          docker run --rm -v "$PWD/tests:/app/tests:ro" \
+            -v "$PWD/requirements-test.txt:/app/requirements-test.txt:ro" gymbot:ci \
+            sh -c "pip3 install -r requirements-test.txt && python3 -m unittest discover -s tests -t /app -v"
 
       - name: Report the schedule
         run: |

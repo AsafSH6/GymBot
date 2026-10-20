@@ -16,7 +16,8 @@ from gym_bot_app.commands import (AdminCommand,
                                   MotivationQuotesCommand,
                                   AllTrainingTraineesCommand,
                                   MonthRankingCommand,
-                                  YearRankingCommand)
+                                  YearRankingCommand,
+                                  FreshStartCommand)
 
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
@@ -69,6 +70,7 @@ def run_gym_bot(token, logger):
     SetCreatureCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     MonthRankingCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     YearRankingCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
+    FreshStartCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     MyStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     BotStatisticsCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()
     MotivationQuotesCommand(tasks=task_type_to_instance, updater=updater, logger=logger).start()

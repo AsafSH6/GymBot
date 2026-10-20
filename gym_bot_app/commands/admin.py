@@ -2,11 +2,11 @@ import argparse
 import datetime as dt
 
 from telegram import Update
-from telegram.error import Unauthorized
+from telegram.error import TelegramError, Unauthorized
 from telegram.ext import CallbackContext
 
 from gym_bot_app.decorators import get_group
-from gym_bot_app.models import Admin, EXPEvent, Group, Trainee
+from gym_bot_app.models import Admin, EXPEvent, FreshStartVote, Group, Trainee
 from gym_bot_app.commands import Command
 from gym_bot_app.tasks import (GoToGymTask,
                                WentToGymTask,
@@ -20,6 +20,8 @@ class AdminCommand(Command):
 
     Options:
         --run-task task_name: run the given task right now.
+        --cancel-fresh-start: cancel the open fresh start vote of the group.
+        --undo-fresh-start: undo the last fresh start of the group.
 
     """
     DEFAULT_COMMAND_NAME = 'admin'
@@ -32,6 +34,9 @@ class AdminCommand(Command):
     NEW_EXP_EVENT_CREATED = '{multiplier}x EXP from {start_datetime} to {end_datetime}'
     DELETED_GROUP_MSG = 'deleted group successfully'
     FAILED_TO_NOTIFY_GROUP_EXP_EVENT = 'Failed to notify {group} about exp event due to exception: {exc}'
+    NO_OPEN_FRESH_START_VOTE_MSG = 'no open fresh start vote in this group'
+    NO_FRESH_START_TO_UNDO_MSG = 'no fresh start to undo in this group'
+    UNDID_FRESH_START_MSG = 'undid fresh start of {executes_at} for: {trainees}'
 
     TASKS = {
         'go_to_gym': GoToGymTask,
@@ -45,6 +50,8 @@ class AdminCommand(Command):
         self.parser.add_argument('--run-task', dest='task_name')
         self.parser.add_argument('--delete-group', dest='delete_group', action='store_true')
         self.parser.add_argument('--exp-event', dest='exp_event', nargs='+')
+        self.parser.add_argument('--cancel-fresh-start', dest='cancel_fresh_start', action='store_true')
+        self.parser.add_argument('--undo-fresh-start', dest='undo_fresh_start', action='store_true')
 
     @get_group
     def _handler(self, update: Update, context: CallbackContext, group: Group):
@@ -72,6 +79,30 @@ class AdminCommand(Command):
                 group.delete()
                 self.logger.debug('Finished to delete group %s', group)
                 update.message.reply_text(quote=True, text=self.DELETED_GROUP_MSG)
+            elif parsed_args.cancel_fresh_start:
+                vote = FreshStartVote.objects.get_pending(group)
+                if vote is not None and vote.cancel():
+                    self.logger.info('Cancelled %s', vote)
+                    try:
+                        context.bot.edit_message_reply_markup(chat_id=group.id,
+                                                              message_id=vote.message_id,
+                                                              reply_markup=None)
+                    except TelegramError:
+                        self.logger.exception('Failed to remove the keyboard of %s', vote)
+                    update.message.reply_text(quote=True, text=self.SUCCEEDED_TO_RUN_COMMAND_MSG)
+                else:
+                    update.message.reply_text(quote=True, text=self.NO_OPEN_FRESH_START_VOTE_MSG)
+            elif parsed_args.undo_fresh_start:
+                vote = FreshStartVote.objects.get_last_done(group)
+                if vote is None:
+                    update.message.reply_text(quote=True, text=self.NO_FRESH_START_TO_UNDO_MSG)
+                else:
+                    trainees = vote.undo()
+                    self.logger.info('Undid %s for %s', vote, trainees)
+                    update.message.reply_text(quote=True, text=self.UNDID_FRESH_START_MSG.format(
+                        executes_at=vote.executes_at.strftime(self.DATETIME_FORMAT),
+                        trainees=', '.join(trainee.first_name for trainee in trainees)
+                    ))
             elif parsed_args.exp_event:
                 multiplier, start_date, start_time, end_date, end_time = parsed_args.exp_event
                 exp_event = EXPEvent.objects.create(

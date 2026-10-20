@@ -1,0 +1,2 @@
+# Installed on top of the bot image to run tests/ (see .github/workflows/ci.yml).
+mongomock==4.1.2
