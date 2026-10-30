@@ -1,11 +1,13 @@
+import hashlib
 import unicodedata
 from datetime import datetime
 
 from mongoengine import NotUniqueError
-from telegram import MessageEntity, Update
-from telegram.ext import CallbackContext, Filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, Update
+from telegram.error import TelegramError
+from telegram.ext import CallbackContext, CallbackQueryHandler, Filters
 
-from gym_bot_app import WEIGHT_LIFTER_EMOJI
+from gym_bot_app import MUSCLE_EMOJI, WEIGHT_LIFTER_EMOJI
 from gym_bot_app.commands import Command
 from gym_bot_app.decorators import get_trainee_and_group
 from gym_bot_app.models import MAX_PERSONAL_MOTIVATION_LENGTH, PersonalMotivationQuote, Trainee, Group
@@ -54,6 +56,15 @@ def has_forbidden_characters(text):
     return False
 
 
+def sentence_fingerprint(text):
+    """Short fingerprint of the sentence, telling it apart from the ones the trainee sets after it.
+
+    The callback data of a button is limited to 64 bytes, too short for the sentence itself.
+
+    """
+    return hashlib.sha256(text.encode('utf-8')).hexdigest()[:8]
+
+
 def has_links_or_tags(message):
     """Check whether the message has links, emails, mentions or commands after the command itself.
 
@@ -70,6 +81,9 @@ class SetMotivationCommand(Command):
     Allows trainees add their own motivation sentence to the motivation quotes of the group.
     Each trainee has one sentence in each group, setting another one replaces it.
 
+    The sentence is set in the group the command was sent in. A trainee who is in other
+    groups too is asked whether to use it in all of them, which replaces their sentence there.
+
     The sentence is stored and sent exactly as Telegram delivered it, as plain text. Sentences
     that would show differently than written, ping someone or post a link are rejected.
 
@@ -83,6 +97,24 @@ class SetMotivationCommand(Command):
     LINKS_AND_TAGS_MSG = 'בלי קישורים, תיוגים ופקודות יא בוט'
     ADDED_MOTIVATION_MSG = 'המשפט שלך נוסף למוטיבציות של הקבוצה {emoji}'.format(emoji=WEIGHT_LIFTER_EMOJI)
     REPLACED_MOTIVATION_MSG = 'החלפתי את המשפט שלך:\n"{old_text}"\nב:\n"{new_text}"'
+
+    SCOPE_QUERY_IDENTIFIER = 'motivation_scope'
+    ALL_GROUPS_SCOPE = 'all'
+    THIS_GROUP_SCOPE = 'this'
+    SCOPE_QUESTION_MSG = 'להשתמש בו גם בשאר הקבוצות שלך? זה יחליף את המשפט שלך שם'
+    ALL_GROUPS_BUTTON_TEXT = 'בכל הקבוצות'
+    THIS_GROUP_BUTTON_TEXT = 'רק בקבוצה הזאת'
+    SET_IN_ALL_GROUPS_MSG = 'המשפט שלך עכשיו בכל הקבוצות שלך ' + MUSCLE_EMOJI
+    KEPT_IN_THIS_GROUP_MSG = 'בסדר, בשאר הקבוצות לא שיניתי כלום'
+    NOT_YOUR_SENTENCE_MSG = 'זה לא המשפט שלך יא בוט'
+    SENTENCE_ALREADY_REPLACED_MSG = 'המשפט הזה כבר הוחלף'
+
+    def __init__(self, *args, **kwargs):
+        super(SetMotivationCommand, self).__init__(*args, **kwargs)
+        self.updater.dispatcher.add_handler(
+            CallbackQueryHandler(pattern='{identifier} '.format(identifier=self.SCOPE_QUERY_IDENTIFIER),
+                                 callback=self.scope_callback_query)
+        )
 
     def start(self, command_name=None, *args, **kwargs):
         """Override method to ignore edited messages.
@@ -126,17 +158,95 @@ class SetMotivationCommand(Command):
             update.message.reply_text(quote=True, text=problem_msg)
             return
 
-        try:
-            old_quote = self._set_quote(trainee=trainee, group=group, text=text)
-        except NotUniqueError:  # Lost a race with another insert of this trainee's sentence, now replace it.
-            old_quote = self._set_quote(trainee=trainee, group=group, text=text)
+        old_quote = self._store_quote(trainee=trainee, group=group, text=text)
 
         if old_quote is None:
             msg = self.ADDED_MOTIVATION_MSG
         else:
             msg = self.REPLACED_MOTIVATION_MSG.format(old_text=old_quote.text, new_text=text)
 
-        update.message.reply_text(quote=True, text=msg, disable_web_page_preview=True)
+        reply_markup = None
+        if self._get_other_groups(trainee=trainee, group_id=group.id):
+            msg += '\n\n' + self.SCOPE_QUESTION_MSG
+            reply_markup = self._get_scope_keyboard(trainee=trainee, text=text)
+
+        update.message.reply_text(quote=True, text=msg, reply_markup=reply_markup, disable_web_page_preview=True)
+
+    def scope_callback_query(self, update: Update, context: CallbackContext):
+        """Response handler of the question whether to use the sentence in all the groups of the trainee.
+
+        Only the trainee who set the sentence can answer, and only while it is still their
+        sentence in the group. Using it in all groups replaces their sentence in each of them.
+
+        Anyone in the group can tap the buttons, so the tap is checked before anything else.
+        Unlike the decorators, it neither loads the group nor adds whoever tapped to its trainees.
+
+        """
+        query = update.callback_query
+        _, owner_id, scope, fingerprint = query.data.split()
+        group_id = str(query.message.chat_id)
+        self.logger.info('Motivation scope callback query of trainee %s in group %s answered %s by %s',
+                         owner_id, group_id, scope, update.effective_user.id)
+
+        if str(update.effective_user.id) != owner_id:
+            self._answer(query, text=self.NOT_YOUR_SENTENCE_MSG)
+            return
+
+        quote = PersonalMotivationQuote.objects(group=group_id, trainee=owner_id).first()
+        if quote is None or sentence_fingerprint(quote.text) != fingerprint:
+            outcome_msg = self.SENTENCE_ALREADY_REPLACED_MSG
+        elif scope == self.ALL_GROUPS_SCOPE:
+            trainee = quote.trainee.fetch()
+            for other_group in self._get_other_groups(trainee=trainee, group_id=group_id):
+                self._store_quote(trainee=trainee, group=other_group, text=quote.text)
+            outcome_msg = self.SET_IN_ALL_GROUPS_MSG
+        else:
+            outcome_msg = self.KEPT_IN_THIS_GROUP_MSG
+
+        # The sentences are already stored, so failing to answer the tap or to update the
+        # message is only logged. E.g. a tap made while the bot was down is too old to answer.
+        self._answer(query, text=outcome_msg)
+        try:
+            query.edit_message_text(text=self._replace_question(query.message.text, outcome_msg),
+                                    reply_markup=None,
+                                    disable_web_page_preview=True)
+        except TelegramError:
+            self.logger.exception('Failed to update the motivation scope message of trainee %s', owner_id)
+
+    def _answer(self, query, text):
+        """Answer the tap on a button, logging a failure instead of raising it."""
+        try:
+            query.answer(text=text)
+        except TelegramError:
+            self.logger.exception('Failed to answer the motivation scope callback query')
+
+    def _replace_question(self, msg, outcome_msg):
+        """The message with the scope question, the question replaced with its outcome."""
+        if msg and msg.endswith(self.SCOPE_QUESTION_MSG):
+            return msg[:-len(self.SCOPE_QUESTION_MSG)] + outcome_msg
+
+        return outcome_msg
+
+    def _get_scope_keyboard(self, trainee, text):
+        callback_data = '{identifier} {trainee_id} {{scope}} {fingerprint}'.format(
+            identifier=self.SCOPE_QUERY_IDENTIFIER,
+            trainee_id=trainee.id,
+            fingerprint=sentence_fingerprint(text)
+        )
+
+        return InlineKeyboardMarkup([[
+            InlineKeyboardButton(self.ALL_GROUPS_BUTTON_TEXT, callback_data=callback_data.format(scope=self.ALL_GROUPS_SCOPE)),
+            InlineKeyboardButton(self.THIS_GROUP_BUTTON_TEXT, callback_data=callback_data.format(scope=self.THIS_GROUP_SCOPE)),
+        ]])
+
+    @staticmethod
+    def _get_other_groups(trainee, group_id):
+        """The groups of the trainee other than the given one, with only their id.
+
+        Loading a whole group loads each of its trainees too, one by one.
+
+        """
+        return trainee.groups.filter(id__ne=group_id).only('id')
 
     def _find_problem(self, message, text):
         """Find why the sentence can't be used.
@@ -162,6 +272,19 @@ class SetMotivationCommand(Command):
             return self.LINKS_AND_TAGS_MSG
 
         return None
+
+    @classmethod
+    def _store_quote(cls, trainee, group, text):
+        """Set the trainee's motivation quote in the group.
+
+        Returns:
+            PersonalMotivationQuote. the replaced quote, None if the trainee did not have one.
+
+        """
+        try:
+            return cls._set_quote(trainee=trainee, group=group, text=text)
+        except NotUniqueError:  # Lost a race with another insert of this trainee's sentence, now replace it.
+            return cls._set_quote(trainee=trainee, group=group, text=text)
 
     @staticmethod
     def _set_quote(trainee, group, text):

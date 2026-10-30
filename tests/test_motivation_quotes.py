@@ -8,20 +8,19 @@ Handlers are driven with real telegram Updates, and the bot is an autospec of th
 telegram.Bot, so a call with a wrong method or argument name fails the test.
 """
 import logging
-import os
 import unittest
 from unittest import mock
 
-import mongomock
-from mongoengine import NotUniqueError, connect, disconnect
-from mongoengine.connection import get_db
+from mongoengine import NotUniqueError
 from telegram import Bot, MessageEntity, Update
-from telegram.ext import Updater
+from telegram.error import TelegramError
+from telegram.ext import CommandHandler, Updater
 from telegram.utils.helpers import DEFAULT_NONE
 
 from gym_bot_app.commands import MotivationQuotesCommand, SetMotivationCommand
 from gym_bot_app.models import Group, PersonalMotivationQuote, Trainee
 from gym_bot_app.quotes import QUOTE_LIST, QUOTE_MSG
+from tests import connect_test_db, disconnect_test_db
 
 # Well-formed but fake -- Bot() only validates the token's shape, it never calls out.
 FAKE_TOKEN = '123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
@@ -29,23 +28,13 @@ BOT_USERNAME = 'GymiousBot'
 
 GROUP_ID = '-100'
 OTHER_GROUP_ID = '-200'
+THIRD_GROUP_ID = '-300'
 
 MODELS = (Group, PersonalMotivationQuote, Trainee)
 
 
-def setUpModule():
-    if os.getenv('TEST_MONGODB_URL'):
-        connect(host=os.environ['TEST_MONGODB_URL'])
-        db_name = get_db().name
-        if 'test' not in db_name:
-            disconnect()
-            raise RuntimeError('Refusing to wipe {!r}: TEST_MONGODB_URL must name a test database'.format(db_name))
-    else:
-        connect('gymbot_test', mongo_client_class=mongomock.MongoClient)
-
-
-def tearDownModule():
-    disconnect()
+setUpModule = connect_test_db
+tearDownModule = disconnect_test_db
 
 
 def stored_quotes():
@@ -211,7 +200,7 @@ class TestSetMotivation(MotivationTestCase):
     def test_edited_command_does_not_reach_the_handler(self):
         """An edit has no update.message, which the decorators need."""
         self.set_motivation_command.start()
-        handler, = self.updater.dispatcher.handlers[0]
+        handler, = [handler for handler in self.updater.dispatcher.handlers[0] if isinstance(handler, CommandHandler)]
 
         self.assertFalse(handler.check_update(self.make_update('/set_motivation Fixed typo', edited=True)))
         self.assertTrue(handler.check_update(self.make_update('/set_motivation Never skip leg day')))
@@ -272,6 +261,191 @@ class TestMotivateMe(MotivationTestCase):
 
         for _ in range(20):
             self.assertIn(self.reply_to(self.motivate_me_command._handler, '/motivate_me'), possible_replies)
+
+
+class TestMotivationScope(MotivationTestCase):
+    """A trainee who is in other groups too is asked whether to use the sentence in all of them."""
+
+    def join(self, group_id, user_id='1', first_name='Arnold'):
+        """The trainee sends a command in the group, which adds them to it."""
+        self.motivate_me(group_id=group_id, user_id=user_id, first_name=first_name)
+
+    def buttons(self, reply_call=None):
+        """The buttons of the given reply, the last reply if not given."""
+        reply_markup = (reply_call or self.reply_call).kwargs.get('reply_markup')
+        return [button for row in reply_markup.inline_keyboard for button in row] if reply_markup else []
+
+    def make_callback_update(self, callback_data, user_id='1', first_name='Arnold', message_text=None):
+        """A real telegram Update with a tap on a button of a bot message in the group, by the given user."""
+        message = {'message_id': 8, 'date': 0, 'chat': {'id': int(GROUP_ID), 'type': 'group'},
+                   'from': {'id': 999, 'first_name': 'GymBot', 'is_bot': True},
+                   'text': message_text}
+        callback_query = {'id': '5', 'chat_instance': '1', 'data': callback_data, 'message': message,
+                          'from': {'id': int(user_id), 'first_name': first_name, 'is_bot': False}}
+        return Update.de_json({'update_id': 2, 'callback_query': callback_query}, self.bot)
+
+    def tap(self, button_text, user_id='1', first_name='Arnold', reply_call=None):
+        """Tap the button with the given text on the given reply, the last reply if not given.
+
+        Returns:
+            str. the text the tap was answered with.
+
+        """
+        reply_call = reply_call or self.reply_call
+        button, = [button for button in self.buttons(reply_call) if button.text == button_text]
+        update = self.make_callback_update(button.callback_data, user_id=user_id, first_name=first_name,
+                                           message_text=reply_call.kwargs['text'])
+
+        self.bot.answer_callback_query.reset_mock()
+        self.bot.edit_message_text.reset_mock()
+        self.set_motivation_command.scope_callback_query(update, mock.Mock())
+        return self.bot.answer_callback_query.call_args.kwargs['text']
+
+    def edited_text(self):
+        """The text the message with the buttons was edited to, None if it was not edited."""
+        call = self.bot.edit_message_text.call_args
+        if call is None:
+            return None
+
+        self.assertEqual(call.kwargs['message_id'], 8)
+        self.assertIsNone(call.kwargs['reply_markup'])
+        self.assertIs(call.kwargs['disable_web_page_preview'], True)
+        self.assertIn(call.kwargs.get('parse_mode'), (None, DEFAULT_NONE))
+        return call.kwargs['text']
+
+    def test_trainee_in_one_group_is_not_asked(self):
+        self.join(OTHER_GROUP_ID, user_id='2', first_name='Ronnie')
+
+        reply = self.set_motivation('/set_motivation Never skip leg day')
+
+        self.assertEqual(reply, SetMotivationCommand.ADDED_MOTIVATION_MSG)
+        self.assertEqual(self.buttons(), [])
+
+    def test_trainee_in_other_groups_is_asked_and_the_sentence_is_set_in_this_group(self):
+        self.join(OTHER_GROUP_ID)
+
+        reply = self.set_motivation('/set_motivation Never skip leg day')
+
+        self.assertEqual(reply, SetMotivationCommand.ADDED_MOTIVATION_MSG + '\n\n' + SetMotivationCommand.SCOPE_QUESTION_MSG)
+        self.assertEqual([button.text for button in self.buttons()],
+                         [SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT, SetMotivationCommand.THIS_GROUP_BUTTON_TEXT])
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day')])
+
+    def test_replacing_the_sentence_asks_too(self):
+        self.join(OTHER_GROUP_ID)
+        self.set_motivation('/set_motivation Never skip leg day')
+
+        reply = self.set_motivation('/set_motivation Light weight baby')
+
+        self.assertTrue(reply.startswith(SetMotivationCommand.REPLACED_MOTIVATION_MSG.format(
+            old_text='Never skip leg day', new_text='Light weight baby')))
+        self.assertTrue(reply.endswith(SetMotivationCommand.SCOPE_QUESTION_MSG))
+        self.assertEqual(len(self.buttons()), 2)
+
+    def test_all_groups_replaces_the_sentence_in_every_group_of_the_trainee(self):
+        self.join(THIRD_GROUP_ID)
+        self.set_motivation('/set_motivation Old sentence', group_id=OTHER_GROUP_ID)
+        self.set_motivation('/set_motivation Ronnie in the other group', user_id='2', first_name='Ronnie',
+                            group_id=OTHER_GROUP_ID)
+        self.join('-400', user_id='2', first_name='Ronnie')
+        self.set_motivation('/set_motivation Never skip leg day')
+
+        answer = self.tap(SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT)
+
+        self.assertEqual(answer, SetMotivationCommand.SET_IN_ALL_GROUPS_MSG)
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day'),
+                                           (OTHER_GROUP_ID, '1', 'Never skip leg day'),
+                                           (OTHER_GROUP_ID, '2', 'Ronnie in the other group'),
+                                           (THIRD_GROUP_ID, '1', 'Never skip leg day')])
+        self.assertEqual(self.edited_text(),
+                         SetMotivationCommand.ADDED_MOTIVATION_MSG + '\n\n' + SetMotivationCommand.SET_IN_ALL_GROUPS_MSG)
+
+    def test_this_group_keeps_the_sentences_of_the_other_groups(self):
+        self.set_motivation('/set_motivation Old sentence', group_id=OTHER_GROUP_ID)
+        self.set_motivation('/set_motivation Never skip leg day')
+
+        answer = self.tap(SetMotivationCommand.THIS_GROUP_BUTTON_TEXT)
+
+        self.assertEqual(answer, SetMotivationCommand.KEPT_IN_THIS_GROUP_MSG)
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day'),
+                                           (OTHER_GROUP_ID, '1', 'Old sentence')])
+        self.assertEqual(self.edited_text(),
+                         SetMotivationCommand.ADDED_MOTIVATION_MSG + '\n\n' + SetMotivationCommand.KEPT_IN_THIS_GROUP_MSG)
+
+    def test_only_the_trainee_who_set_it_can_answer(self):
+        self.join(OTHER_GROUP_ID)
+        self.join(OTHER_GROUP_ID, user_id='2', first_name='Ronnie')
+        self.set_motivation('/set_motivation Never skip leg day')
+
+        for button_text in (SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT, SetMotivationCommand.THIS_GROUP_BUTTON_TEXT):
+            with self.subTest(button_text=button_text):
+                answer = self.tap(button_text, user_id='2', first_name='Ronnie')
+
+                self.assertEqual(answer, SetMotivationCommand.NOT_YOUR_SENTENCE_MSG)
+                self.assertIsNone(self.edited_text())
+                self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day')])
+
+    def test_tapping_someone_elses_buttons_does_not_add_you_to_the_group(self):
+        self.join(OTHER_GROUP_ID)
+        self.set_motivation('/set_motivation Never skip leg day')
+
+        self.tap(SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT, user_id='2', first_name='Ronnie')
+
+        self.assertIsNone(Trainee.objects.get(id='2'))
+        self.assertEqual([trainee.id for trainee in Group.objects.get(id=GROUP_ID).trainees], ['1'])
+
+    def test_answering_about_a_replaced_sentence_changes_nothing(self):
+        self.join(OTHER_GROUP_ID)
+        self.set_motivation('/set_motivation Never skip leg day')
+        old_reply_call = self.reply_call
+        self.set_motivation('/set_motivation Light weight baby')
+
+        answer = self.tap(SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT, reply_call=old_reply_call)
+
+        self.assertEqual(answer, SetMotivationCommand.SENTENCE_ALREADY_REPLACED_MSG)
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Light weight baby')])
+        self.assertEqual(self.edited_text(), SetMotivationCommand.ADDED_MOTIVATION_MSG + '\n\n' +
+                         SetMotivationCommand.SENTENCE_ALREADY_REPLACED_MSG)
+
+    def test_deleted_groups_are_left_out(self):
+        self.join(OTHER_GROUP_ID)
+        Group.objects.get(id=OTHER_GROUP_ID).delete()
+
+        self.set_motivation('/set_motivation Never skip leg day')
+        self.assertEqual(self.buttons(), [])
+
+        self.join(THIRD_GROUP_ID)
+        self.set_motivation('/set_motivation Never skip leg day')
+        self.tap(SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT)
+
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day'),
+                                           (THIRD_GROUP_ID, '1', 'Never skip leg day')])
+
+    def test_failing_to_answer_or_update_the_message_keeps_the_sentences(self):
+        self.join(OTHER_GROUP_ID)
+        self.set_motivation('/set_motivation Never skip leg day')
+        self.bot.answer_callback_query.side_effect = TelegramError('Query is too old')
+        self.bot.edit_message_text.side_effect = TelegramError('Message to edit not found')
+
+        with self.assertLogs('test', level=logging.ERROR) as logs:
+            self.tap(SetMotivationCommand.ALL_GROUPS_BUTTON_TEXT)
+
+        self.assertEqual(len(logs.records), 2)
+        self.assertEqual(stored_quotes(), [(GROUP_ID, '1', 'Never skip leg day'),
+                                           (OTHER_GROUP_ID, '1', 'Never skip leg day')])
+
+    def test_buttons_fit_the_telegram_limit_and_reach_the_handler(self):
+        """Telegram rejects callback data over 64 bytes, and user ids keep growing."""
+        user_id = str(2 ** 52)
+        self.join(OTHER_GROUP_ID, user_id=user_id)
+        self.set_motivation('/set_motivation ' + 'א' * 200, user_id=user_id)
+        handler, = [handler for handler in self.updater.dispatcher.handlers[0]
+                    if handler.callback == self.set_motivation_command.scope_callback_query]
+
+        for button in self.buttons():
+            with self.subTest(button=button.text):
+                self.assertLessEqual(len(button.callback_data.encode('utf-8')), 64)
+                self.assertTrue(handler.check_update(self.make_callback_update(button.callback_data, user_id=user_id)))
 
 
 def entity_of(text, part, entity_type, **extra):

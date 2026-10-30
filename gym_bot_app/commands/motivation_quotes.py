@@ -40,7 +40,7 @@ class MotivationQuotesCommand(Command):
         quote, = random.choices(QUOTE_LIST + personal_quotes, weights=weights)
 
         if isinstance(quote, PersonalMotivationQuote):
-            quote = {'text': quote.text, 'author': quote.trainee.fetch().first_name}
+            quote = quote.as_quote()
 
         update.message.reply_text(quote=True,
                                   text=format_quote(quote),

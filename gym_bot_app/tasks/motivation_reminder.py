@@ -2,7 +2,7 @@ import random
 from datetime import datetime, time, timedelta
 
 from gym_bot_app import MUSCLE_EMOJI
-from gym_bot_app.models import Group
+from gym_bot_app.models import Group, PersonalMotivationQuote
 from gym_bot_app.quotes import format_quote, quote_of_the_day
 from gym_bot_app.tasks.task import Task, SCHEDULE_TIMEZONE
 from gym_bot_app.tasks.go_to_gym import GoToGymTask
@@ -13,19 +13,22 @@ from gym_bot_app.decorators import run_for_all_groups
 class MotivationReminderTask(Task):
     """Telegram gym bot motivation reminder task.
 
-    Sends the quote of the day to all groups once a day, at a random time between the
-    go to gym reminder and the went to gym question.
+    Sends a motivation quote to all groups once a day, at a random time between the go to
+    gym reminder and the went to gym question. A group that has personal motivation
+    sentences (see SetMotivationCommand) gets one of them on PERSONAL_QUOTE_CHANCE of the
+    days, and the quote of the day otherwise.
 
     The daily job at target_time only plans the day: it schedules a one-off send at the
-    day's random time. Both that time and the quote are derived from the date, so a
-    restart in the middle of the day plans exactly the same send again -- nothing has to
-    survive a redeploy, and a group never gets two quotes in one day.
+    day's random time. That time is derived from the date, and the quote from the date and
+    the group, so a restart in the middle of the day plans exactly the same send again --
+    nothing has to survive a redeploy, and a group never gets two quotes in one day.
 
     """
     DEFAULT_TARGET_TIME = time(hour=0, minute=5, second=0, microsecond=0)
     DEFAULT_WINDOW_START = GoToGymTask.DEFAULT_TARGET_TIME
     DEFAULT_WINDOW_END = WentToGymTask.DEFAULT_TARGET_TIME
     WINDOW_MARGIN = timedelta(minutes=30)  # Keeps the quote away from the reminders themselves.
+    PERSONAL_QUOTE_CHANCE = 0.5  # Chance a group with personal sentences gets one of them instead of the quote of the day.
 
     MOTIVATION_MSG = MUSCLE_EMOJI + ' מוטיבציה יומית\n{quote}'
 
@@ -107,26 +110,54 @@ class MotivationReminderTask(Task):
         self.logger.info('Planned motivation reminder of %s at %s', day, send_time)
         return send_time
 
-    def get_motivation_msg(self, day):
-        """Generate the motivation message of the given day.
+    def pick_quote(self, day, group):
+        """Pick the quote the given group gets on the given day.
+
+        One of the personal sentences of the group on PERSONAL_QUOTE_CHANCE of the days, if
+        it has any, and the quote of the day otherwise. Seeded by the day and the group, so
+        it is the same on every call as long as the sentences of the group stay the same.
+
+        Args:
+            day(datetime.date): day to pick the quote for.
+            group(models.Group): group to pick the quote for.
+
+        Returns:
+            dict. quote in the form of the quotes of QUOTE_LIST.
+
+        """
+        rng = random.Random('{day} {group_id}'.format(day=day.isoformat(), group_id=group.id))
+        if rng.random() < self.PERSONAL_QUOTE_CHANCE:
+            # Ordered, so the seeded pick does not depend on the order the database returns them in.
+            personal_quotes = list(PersonalMotivationQuote.objects(group=group.pk).order_by('trainee'))
+            if personal_quotes:
+                return rng.choice(personal_quotes).as_quote()
+
+        return quote_of_the_day(day)
+
+    def get_motivation_msg(self, day, group):
+        """Generate the motivation message of the given day for the given group.
 
         Args:
             day(datetime.date): day to generate the message of.
+            group(models.Group): group to generate the message for.
 
         Returns:
-            str. motivation message with the quote of the day.
+            str. motivation message with the quote the group gets on that day.
 
         """
-        return self.MOTIVATION_MSG.format(quote=format_quote(quote_of_the_day(day)))
+        return self.MOTIVATION_MSG.format(quote=format_quote(self.pick_quote(day, group)))
 
     @run_for_all_groups
     def execute(self, group: Group):
         """Override method to execute motivation reminder task.
 
-        Sends the quote of the day to the given group chat.
+        Sends the quote the given group gets today to its chat.
 
         """
         self.logger.info('Executing motivation reminder task with %s', group)
 
         today = datetime.now(SCHEDULE_TIMEZONE).date()
-        self.updater.bot.send_message(chat_id=group.id, text=self.get_motivation_msg(today))
+        # Personal sentences are free text from trainees, so the message is sent as plain text, without previews.
+        self.updater.bot.send_message(chat_id=group.id,
+                                      text=self.get_motivation_msg(today, group),
+                                      disable_web_page_preview=True)

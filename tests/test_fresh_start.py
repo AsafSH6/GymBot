@@ -9,17 +9,13 @@ Handlers are driven with real telegram Updates, and the bot is an autospec of th
 telegram.Bot, so a call with a wrong method or argument name fails the test.
 """
 import logging
-import os
 import threading
 import time
 import unittest
 from datetime import datetime, timedelta
 from unittest import mock
 
-import mongomock
 import pytz
-from mongoengine import connect, disconnect
-from mongoengine.connection import get_db
 from telegram import Bot, Update
 from pymongo.errors import ServerSelectionTimeoutError
 from telegram.error import BadRequest, NetworkError, RetryAfter, TimedOut, Unauthorized
@@ -30,6 +26,7 @@ from gym_bot_app.commands.fresh_start import (CloseFreshStartVote, FreshStartCom
                                               fresh_start_deadline)
 from gym_bot_app.models import Admin, EXPEvent, FreshStartVote, Group, Level, Trainee, TrainingDayInfo
 from gym_bot_app.utils import trainee_already_marked_training_date
+from tests import connect_test_db, disconnect_test_db
 
 # Well-formed but fake -- Bot() only validates the token's shape, it never calls out.
 FAKE_TOKEN = '123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
@@ -59,19 +56,8 @@ class FrozenDatetime(datetime):
         return NOW
 
 
-def setUpModule():
-    if os.getenv('TEST_MONGODB_URL'):
-        connect(host=os.environ['TEST_MONGODB_URL'])
-        db_name = get_db().name
-        if 'test' not in db_name:
-            disconnect()
-            raise RuntimeError('Refusing to wipe {!r}: TEST_MONGODB_URL must name a test database'.format(db_name))
-    else:
-        connect('gymbot_test', mongo_client_class=mongomock.MongoClient)
-
-
-def tearDownModule():
-    disconnect()
+setUpModule = connect_test_db
+tearDownModule = disconnect_test_db
 
 
 def level_after(exp, level=None):

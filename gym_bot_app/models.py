@@ -821,6 +821,15 @@ class PersonalMotivationQuote(Document):
         'index_background': True,
     }
 
+    def as_quote(self):
+        """The sentence as a quote, signed with the first name of the trainee who set it.
+
+        Returns:
+            dict. quote in the form of the quotes of QUOTE_LIST.
+
+        """
+        return {'text': self.text, 'author': self.trainee.fetch().first_name}
+
     def __repr__(self):
         return '<PersonalMotivationQuote of trainee {trainee_pk} in group {group_pk}>'.format(
             trainee_pk=self.trainee.pk,
