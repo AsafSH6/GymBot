@@ -1,18 +1,24 @@
 """Tests for the daily motivation reminder.
 
 The send time and the quote are derived from the date, so these are pure like the
-schedule tests: no network, no database, no running scheduler, and every "now" is a
-fixed instant passed in explicitly.
+schedule tests: no network, no running scheduler, and every "now" is a fixed instant
+passed in explicitly. The personal sentences of the groups are read from mongomock, an
+in-memory MongoDB, or from TEST_MONGODB_URL if set (see tests.connect_test_db).
 """
 import logging
 import unittest
 from datetime import date, datetime, time, timedelta
+from unittest import mock
 
 import pytz
+from telegram import Bot
 from telegram.ext import Updater
+from telegram.utils.helpers import DEFAULT_NONE
 
+from gym_bot_app.models import Group, PersonalMotivationQuote, Trainee
 from gym_bot_app.quotes import QUOTE_LIST, format_quote, quote_of_the_day
 from gym_bot_app.tasks import GoToGymTask, MotivationReminderTask, WentToGymTask
+from tests import connect_test_db, disconnect_test_db
 
 # Well-formed but fake -- Bot() only validates the token's shape, it never calls out.
 FAKE_TOKEN = '123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
@@ -23,6 +29,13 @@ WINDOW_START = time(hour=9, minute=30)
 WINDOW_END = time(hour=20, minute=30)
 
 DAY = date(2026, 8, 2)
+
+GROUP_ID = '-100'
+OTHER_GROUP_ID = '-200'
+
+
+setUpModule = connect_test_db
+tearDownModule = disconnect_test_db
 
 
 def days(start, count):
@@ -134,10 +147,99 @@ class TestQuoteOfTheDay(unittest.TestCase):
         for yesterday, today in zip(quotes, quotes[1:]):
             self.assertIsNot(yesterday, today)
 
-    def test_motivation_message_contains_the_quote_of_the_day(self):
-        msg = new_task().get_motivation_msg(DAY)
+
+class TestPersonalQuotes(unittest.TestCase):
+    """Groups with personal sentences get one of them on part of the days."""
+
+    def setUp(self):
+        for model in (Group, PersonalMotivationQuote, Trainee):
+            model.objects.delete()
+
+        self.task = new_task()
+        self.group = Group.objects.create(id=GROUP_ID)
+        self.other_group = Group.objects.create(id=OTHER_GROUP_ID)
+
+    @staticmethod
+    def set_sentence(group, trainee_id, first_name, text):
+        trainee = Trainee.objects.get(id=trainee_id) or Trainee.objects.create(id=trainee_id, first_name=first_name)
+        PersonalMotivationQuote(group=group.pk, trainee=trainee.pk, text=text).save()
+
+    def picks(self, group, count=400):
+        return [self.task.pick_quote(day, group) for day in days(DAY, count)]
+
+    def test_group_without_sentences_gets_the_quote_of_the_day(self):
+        self.set_sentence(self.other_group, '1', 'Arnold', 'Not in this group')
+
+        with mock.patch.object(MotivationReminderTask, 'PERSONAL_QUOTE_CHANCE', 1):
+            for day in days(DAY, 30):
+                self.assertIs(self.task.pick_quote(day, self.group), quote_of_the_day(day))
+
+    def test_personal_sentence_is_signed_with_the_name_of_who_set_it(self):
+        self.set_sentence(self.group, '1', 'Arnold', 'Never skip leg day')
+
+        with mock.patch.object(MotivationReminderTask, 'PERSONAL_QUOTE_CHANCE', 1):
+            msg = self.task.get_motivation_msg(DAY, self.group)
+
         self.assertIn('מוטיבציה יומית', msg)
-        self.assertIn(format_quote(quote_of_the_day(DAY)), msg)
+        self.assertIn('"Never skip leg day", Arnold', msg)
+
+    def test_without_the_chance_every_day_gets_the_quote_of_the_day(self):
+        self.set_sentence(self.group, '1', 'Arnold', 'Never skip leg day')
+
+        with mock.patch.object(MotivationReminderTask, 'PERSONAL_QUOTE_CHANCE', 0):
+            for day in days(DAY, 30):
+                self.assertIs(self.task.pick_quote(day, self.group), quote_of_the_day(day))
+
+    def test_personal_sentences_are_sent_on_about_their_chance_of_the_days(self):
+        self.set_sentence(self.group, '1', 'Arnold', 'Never skip leg day')
+        self.set_sentence(self.group, '2', 'Ronnie', 'Yeah buddy')
+
+        picks = self.picks(self.group)
+
+        personal_share = sum(quote['author'] in ('Arnold', 'Ronnie') for quote in picks) / len(picks)
+        self.assertAlmostEqual(personal_share, MotivationReminderTask.PERSONAL_QUOTE_CHANCE, delta=0.1)
+
+    def test_every_personal_sentence_of_the_group_gets_sent(self):
+        sentences = {'1': 'Never skip leg day', '2': 'Yeah buddy', '3': 'Light weight baby'}
+        for trainee_id, text in sentences.items():
+            self.set_sentence(self.group, trainee_id, 'Trainee' + trainee_id, text)
+        self.set_sentence(self.other_group, '4', 'Other', 'Not in this group')
+
+        sent = {quote['text'] for quote in self.picks(self.group)}
+
+        self.assertTrue(set(sentences.values()) <= sent)
+        self.assertNotIn('Not in this group', sent)
+
+    def test_same_day_and_group_get_the_same_quote(self):
+        """A restart, or running the task again via /admin, sends the same quote."""
+        self.set_sentence(self.group, '1', 'Arnold', 'Never skip leg day')
+        self.set_sentence(self.group, '2', 'Ronnie', 'Yeah buddy')
+
+        self.assertEqual(self.picks(self.group, count=60), self.picks(self.group, count=60))
+
+    def test_groups_get_their_own_quote(self):
+        self.set_sentence(self.group, '1', 'Arnold', 'Never skip leg day')
+        self.set_sentence(self.other_group, '2', 'Ronnie', 'Yeah buddy')
+
+        self.assertNotEqual(self.picks(self.group, count=60), self.picks(self.other_group, count=60))
+
+    def test_sends_each_group_its_quote_as_plain_text(self):
+        self.set_sentence(self.group, '1', 'Arnold', 'Never skip leg day')
+        bot = mock.create_autospec(Bot, instance=True)
+        self.task.updater.bot = bot
+
+        with mock.patch.object(MotivationReminderTask, 'PERSONAL_QUOTE_CHANCE', 1):
+            self.task.execute()
+
+        today = datetime.now(TZ).date()
+        sent = {call.kwargs['chat_id']: call.kwargs for call in bot.send_message.call_args_list}
+        self.assertEqual({chat_id: kwargs['text'] for chat_id, kwargs in sent.items()}, {
+            GROUP_ID: MotivationReminderTask.MOTIVATION_MSG.format(quote='"Never skip leg day", Arnold'),
+            OTHER_GROUP_ID: MotivationReminderTask.MOTIVATION_MSG.format(quote=format_quote(quote_of_the_day(today))),
+        })
+        for kwargs in sent.values():
+            self.assertIs(kwargs['disable_web_page_preview'], True)
+            self.assertIn(kwargs.get('parse_mode'), (None, DEFAULT_NONE))
 
 
 if __name__ == '__main__':
