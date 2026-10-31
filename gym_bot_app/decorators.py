@@ -1,7 +1,7 @@
 import logging
 import functools
 
-from telegram.error import TimedOut, Unauthorized
+from telegram.error import BadRequest, TimedOut, Unauthorized
 
 from gym_bot_app.models import Group, Trainee
 from gym_bot_app.utils import get_update_from_args
@@ -70,11 +70,18 @@ def get_trainee_and_group(func):
     return wrapper
 
 
+def is_chat_not_found(error):
+    """Check whether Telegram refused the request because the chat does not exist, e.g. a deleted group."""
+    return isinstance(error, BadRequest) and error.message.lower() == 'chat not found'
+
+
 def run_for_all_groups(func):
     """Decorator to run function for all existing groups in DB.
 
     Insert the group to the function as last argument.
-    Handles TimedOut exceptions if occurred.
+    An error in one group is logged and does not stop the others. A group the bot can no
+    longer reach, because it was removed or blocked or the chat does not exist anymore, is
+    marked as deleted.
 
     Example:
         @run_for_all_groups
@@ -96,9 +103,13 @@ def run_for_all_groups(func):
             except Unauthorized:
                 group.delete()
                 logger.info('Unauthorized group %s - deleted', group)
-            except Exception:
-                logger.error('Exception occurred in module %s with execution func %s',
-                             func.__module__,
-                             func.__name__)
+            except Exception as error:
+                if is_chat_not_found(error):
+                    group.delete()
+                    logger.info('Chat of group %s not found - deleted', group)
+                else:
+                    logger.exception('Exception occurred in module %s with execution func %s',
+                                     func.__module__,
+                                     func.__name__)
 
     return wrapper
